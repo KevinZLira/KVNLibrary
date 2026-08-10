@@ -27,6 +27,10 @@ async function importAsset(asset) {
   try {
     success = await project.importFiles([asset.path], true, undefined, false);
   } catch (error) {
+    // DIAGNÓSTICO TEMPORÁRIO - remover depois de identificar o erro real.
+    console.error("[KVN] Erro ao chamar project.importFiles():", error);
+    console.error("[KVN] asset.path usado:", asset.path);
+    console.error("[KVN] typeof error:", typeof error, "| keys:", Object.keys(error || {}));
     const wrapped = new Error(`Falha ao importar "${asset.name}": ${error.message}`);
     wrapped.code = "IMPORT_ERROR";
     throw wrapped;
