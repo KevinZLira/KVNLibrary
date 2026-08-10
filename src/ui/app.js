@@ -95,7 +95,7 @@ async function loadAndRenderCategories() {
 
 /**
  * Mostra o conteúdo de uma pasta (categoria de topo ou qualquer subpasta
- * dela): subpastas navagáveis e/ou arquivos. Não mexe em navigationStack -
+ * dela): subpastas navegáveis e/ou arquivos. Não mexe em navigationStack -
  * quem decide empilhar/desempilhar é o chamador (handleSelectFolder ou
  * handleBack).
  */

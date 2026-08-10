@@ -57,7 +57,7 @@ async function loadCategories() {
 
 /**
  * Lê o conteúdo de uma pasta (uma categoria de topo, ou qualquer subpasta
- * dentro dela) - tanto as subpastas navagáveis quanto os arquivos que
+ * dentro dela) - tanto as subpastas navegáveis quanto os arquivos que
  * estão direto nela. Isso permite organizar cada categoria com quantos
  * níveis de subpastas o usuário quiser (ex.: Transitions/Zoom/arquivo.mp4),
  * em vez de exigir que os arquivos fiquem direto na pasta da categoria.
