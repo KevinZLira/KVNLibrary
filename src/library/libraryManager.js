@@ -12,6 +12,7 @@
 const libraryLocation = require("./libraryLocation");
 const categoryManager = require("./categoryManager");
 const assetManager = require("./assetManager");
+const fsUtils = require("../utils/fsUtils");
 
 let cachedLibraryFolder = null;
 let categoriesCache = null;
@@ -61,16 +62,27 @@ async function loadCategories() {
  * estão direto nela. Isso permite organizar cada categoria com quantos
  * níveis de subpastas o usuário quiser (ex.: Transitions/Zoom/arquivo.mp4),
  * em vez de exigir que os arquivos fiquem direto na pasta da categoria.
+ *
+ * Importante: a pasta é lida uma única vez (fsUtils.listDirectoryEntries).
+ * Duas chamadas concorrentes a Folder.getEntries() na mesma pasta (uma para
+ * subpastas, outra para arquivos) fazem uma delas voltar vazia - por isso
+ * subpastas e arquivos são extraídos da mesma leitura em vez de reler a
+ * pasta duas vezes em paralelo.
  */
 async function loadFolderContents(folder) {
   if (folderContentsCache.has(folder.path)) {
     return folderContentsCache.get(folder.path);
   }
 
-  const [subfolders, assets] = await Promise.all([
-    categoryManager.getCategories(folder.folderEntry),
-    assetManager.getAssetsForCategory(folder),
-  ]);
+  const { directories, files } = await fsUtils.listDirectoryEntries(folder.folderEntry);
+
+  const subfolders = directories
+    .map((entry) => ({ name: entry.name, path: entry.nativePath, folderEntry: entry }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const assets = files
+    .map((entry) => assetManager.toAsset(entry, folder.name))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const result = { subfolders, assets };
   folderContentsCache.set(folder.path, result);

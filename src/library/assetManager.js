@@ -1,12 +1,10 @@
 /**
- * Responsável por listar os arquivos dentro de uma categoria e classificá-los
- * por extensão. A classificação por "kind" é usada apenas para exibir um
- * badge/ícone na UI - não bloqueia a importação de nenhum tipo de arquivo,
- * já que a API do Premiere não documenta uma lista fechada de formatos
- * suportados por importFiles().
+ * Classifica arquivos por extensão em um "kind" (usado só para o badge/ícone
+ * na UI - não bloqueia a importação de nenhum tipo de arquivo, já que a API
+ * do Premiere não documenta uma lista fechada de formatos suportados por
+ * importFiles()) e converte um Entry de arquivo do UXP em um objeto de
+ * asset pronto para a UI.
  */
-
-const fsUtils = require("../utils/fsUtils");
 
 const KIND_BY_EXTENSION = {
   ".mp4": "video",
@@ -36,23 +34,17 @@ function getKind(extension) {
   return KIND_BY_EXTENSION[extension] || "file";
 }
 
-async function getAssetsForCategory(category) {
-  const { files } = await fsUtils.listDirectoryEntries(category.folderEntry);
-
-  return files
-    .map((entry) => {
-      const extension = path.extname(entry.name).toLowerCase();
-      return {
-        name: entry.name,
-        path: entry.nativePath,
-        extension,
-        kind: getKind(extension),
-        category: category.name,
-      };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name));
+function toAsset(entry, categoryLabel) {
+  const extension = path.extname(entry.name).toLowerCase();
+  return {
+    name: entry.name,
+    path: entry.nativePath,
+    extension,
+    kind: getKind(extension),
+    category: categoryLabel,
+  };
 }
 
 module.exports = {
-  getAssetsForCategory,
+  toAsset,
 };
