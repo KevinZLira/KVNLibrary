@@ -5,10 +5,12 @@
  * Preview real: usa Entry.url (concedido via seletor de pastas) diretamente
  * em <img>/<video>, já que o painel roda num webview Chromium comum e não
  * existe (nem foi encontrada na pesquisa) uma API dedicada de geração de
- * thumbnail no Premiere. Áudio não tem um "frame" visual, então mantém o
- * badge colorido e ganha um botão de reprodução (▶) para pré-ouvir o som
+ * thumbnail no Premiere. Áudio ganha uma forma de onda real (Web Audio API,
+ * ver waveform.js) com play/pause e barra de progresso para pré-ouvir o som
  * sem precisar importar primeiro.
  */
+
+const waveform = require("./waveform");
 
 const KIND_LABEL = {
   video: "VID",
@@ -52,31 +54,59 @@ function createVideoThumb(asset) {
 
 function createAudioThumb(asset) {
   const wrapper = document.createElement("div");
-  wrapper.className = "kvn-asset-thumb kvn-asset-thumb-audio kvn-audio-thumb";
-  wrapper.textContent = "▶";
+  wrapper.className = "kvn-asset-thumb kvn-audio-thumb";
+
+  const canvas = document.createElement("canvas");
+  canvas.className = "kvn-audio-waveform";
+  canvas.width = 240;
+  canvas.height = 68;
+  wrapper.appendChild(canvas);
+  waveform.drawPlaceholderLine(canvas);
+
+  const playIcon = document.createElement("div");
+  playIcon.className = "kvn-audio-thumb-play";
+  playIcon.textContent = "▶";
+  wrapper.appendChild(playIcon);
+
+  const progress = document.createElement("div");
+  progress.className = "kvn-audio-thumb-progress";
+  wrapper.appendChild(progress);
 
   const audio = document.createElement("audio");
   audio.src = asset.url;
   audio.preload = "none";
   wrapper.appendChild(audio);
 
+  waveform
+    .decodeAudioFromUrl(asset.url)
+    .then((audioBuffer) => waveform.drawWaveform(canvas, audioBuffer))
+    .catch(() => {
+      // Sem waveform pra esse arquivo (ex.: codec não suportado pela Web
+      // Audio API) - o play/pause continua funcionando normalmente.
+    });
+
   wrapper.addEventListener("click", (event) => {
     event.stopPropagation();
     if (audio.paused) {
-      wrapper.textContent = "❚❚";
-      wrapper.appendChild(audio);
       audio.play();
     } else {
       audio.pause();
     }
   });
-  audio.addEventListener("ended", () => {
-    wrapper.textContent = "▶";
-    wrapper.appendChild(audio);
+  audio.addEventListener("play", () => {
+    playIcon.textContent = "❚❚";
   });
   audio.addEventListener("pause", () => {
-    wrapper.textContent = "▶";
-    wrapper.appendChild(audio);
+    playIcon.textContent = "▶";
+  });
+  audio.addEventListener("ended", () => {
+    playIcon.textContent = "▶";
+    progress.style.width = "0%";
+  });
+  audio.addEventListener("timeupdate", () => {
+    if (audio.duration) {
+      progress.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+    }
   });
 
   return wrapper;

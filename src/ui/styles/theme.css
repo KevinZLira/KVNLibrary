@@ -278,8 +278,47 @@ body {
 }
 
 .kvn-audio-thumb {
+  display: block;
+  width: 100%;
+  height: 34px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  position: relative;
+  overflow: hidden;
+  background: #17171a;
+}
+
+.kvn-audio-waveform {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.kvn-audio-thumb-play {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  pointer-events: none;
+}
+
+.kvn-audio-thumb-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 0%;
+  background: rgba(61, 139, 253, 0.28);
+  pointer-events: none;
 }
 
 .kvn-audio-thumb audio {

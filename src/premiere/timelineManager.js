@@ -1,25 +1,53 @@
 /**
- * Insere um asset na sequência ativa, na posição atual do playhead.
+ * Insere um asset na sequência ativa, na posição atual do playhead, sempre
+ * na última trilha de vídeo e de áudio que estiver vazia (mesmo
+ * comportamento do Mister Horse Animation/Composer) - assim nunca sobrepõe
+ * um clipe já existente e o usuário não precisa mover nada depois.
  *
  * Baseado no padrão oficial da Adobe - SequenceEditor.getEditor(),
  * SequenceEditor.createInsertProjectItemAction(), Project.executeTransaction()
  * dentro de Project.lockedAccess() - confirmado no sample oficial
  * (uxp-premiere-pro-samples/sample-panels/premiere-api/src/sequenceEditor.ts).
+ * A detecção de trilha vazia usa Sequence.getVideoTrack()/getAudioTrack() +
+ * Track.getTrackItems(Constants.TrackItemType.CLIP, false), documentados na
+ * referência oficial (ppro-reference/classes/sequence.md, videotrack.md,
+ * audiotrack.md).
  *
  * Limitações conhecidas (documentadas, não contornadas às escondidas):
- * - Sempre insere na primeira trilha de vídeo e de áudio (V1/A1, índice 0).
- *   Escolha de trilha fica para uma etapa futura (V3 do roadmap).
  * - O ProjectItem recém-importado é localizado pelo nome do arquivo dentro
  *   do bin raiz do projeto, já que Project.importFiles() não retorna uma
  *   referência direta ao item criado. Em caso raro de dois arquivos com o
  *   mesmo nome já existirem no projeto, o primeiro encontrado é usado.
+ * - Se nenhuma trilha de vídeo (ou de áudio) estiver vazia, uma trilha nova
+ *   é criada acima das existentes - comportamento documentado da própria
+ *   createInsertProjectItemAction ("se o índice passado for maior que a
+ *   contagem atual de trilhas, uma nova trilha é criada").
  */
 
 const ppro = require("./premiereBridge");
 const projectManager = require("./projectManager");
 
-const TARGET_VIDEO_TRACK_INDEX = 0;
-const TARGET_AUDIO_TRACK_INDEX = 0;
+/**
+ * Procura, de cima para baixo, a trilha (vídeo ou áudio) mais alta que não
+ * tenha nenhum clipe. Se todas tiverem conteúdo, retorna a contagem atual de
+ * trilhas - createInsertProjectItemAction cria uma trilha nova nesse índice.
+ */
+async function findLastEmptyTrackIndex(sequence, kind) {
+  const getCount = () =>
+    kind === "video" ? sequence.getVideoTrackCount() : sequence.getAudioTrackCount();
+  const getTrack = (index) =>
+    kind === "video" ? sequence.getVideoTrack(index) : sequence.getAudioTrack(index);
+
+  const count = await getCount();
+  for (let index = count - 1; index >= 0; index--) {
+    const track = await getTrack(index);
+    const clipItems = track.getTrackItems(ppro.Constants.TrackItemType.CLIP, false);
+    if (!clipItems || clipItems.length === 0) {
+      return index;
+    }
+  }
+  return count;
+}
 
 async function findProjectItemByName(project, name) {
   const rootItem = await project.getRootItem();
@@ -84,6 +112,11 @@ async function insertAssetAtPlayhead(asset) {
   const playheadTime = await sequence.getPlayerPosition();
   const sequenceEditor = ppro.SequenceEditor.getEditor(sequence);
 
+  const [videoTrackIndex, audioTrackIndex] = await Promise.all([
+    findLastEmptyTrackIndex(sequence, "video"),
+    findLastEmptyTrackIndex(sequence, "audio"),
+  ]);
+
   let success = false;
   try {
     project.lockedAccess(() => {
@@ -91,8 +124,8 @@ async function insertAssetAtPlayhead(asset) {
         const insertAction = sequenceEditor.createInsertProjectItemAction(
           projectItem,
           playheadTime,
-          TARGET_VIDEO_TRACK_INDEX,
-          TARGET_AUDIO_TRACK_INDEX,
+          videoTrackIndex,
+          audioTrackIndex,
           true
         );
         compoundAction.addAction(insertAction);
