@@ -1,10 +1,14 @@
 /**
  * Importação de assets para o projeto atual do Premiere.
  *
- * Usa Project.importFiles(filePaths, suppressUI, targetBin, asNumberedStills),
- * passando targetBin como undefined para importar direto na raiz do
- * Project Panel - o mesmo padrão usado no sample oficial da Adobe
- * (uxp-premiere-pro-samples/sample-panels/premiere-api/src/import.ts).
+ * Usa Project.importFiles(filePaths, suppressUI, targetBin, asNumberedStills).
+ * O sample oficial da Adobe passa `undefined` explicitamente para targetBin,
+ * mas isso causou "Illegal Parameter type" na versão do Premiere testada -
+ * aparentemente esse binding nativo não aceita `undefined` explícito nesse
+ * parâmetro em todas as versões. Chamando só com os dois primeiros
+ * parâmetros (filePaths, suppressUI) evita o problema e ainda importa para
+ * a raiz do Project Panel, que é o comportamento padrão quando nenhum bin
+ * é especificado.
  *
  * Inserção automática na timeline/playhead NÃO é feita aqui: essa API não
  * foi confirmada na pesquisa inicial e fica para uma etapa futura (V3).
@@ -23,25 +27,12 @@ async function importAsset(asset) {
     throw error;
   }
 
-  // DIAGNÓSTICO TEMPORÁRIO - remover depois de identificar o erro real.
-  console.log("[KVN] Chamando project.importFiles() com:", [asset.path]);
-
   let success = false;
   try {
-    success = await project.importFiles([asset.path], true, undefined, false);
-    console.log("[KVN] project.importFiles() retornou:", success);
+    success = await project.importFiles([asset.path], true);
   } catch (error) {
-    console.log(
-      "[KVN] project.importFiles() lançou erro:",
-      error,
-      "| typeof:",
-      typeof error,
-      "| String(error):",
-      String(error),
-      "| keys:",
-      error && typeof error === "object" ? Object.keys(error) : "n/a"
-    );
-    const wrapped = new Error(`Falha ao importar "${asset.name}": ${error && error.message}`);
+    const message = error && typeof error === "object" ? error.message : String(error);
+    const wrapped = new Error(`Falha ao importar "${asset.name}": ${message}`);
     wrapped.code = "IMPORT_ERROR";
     throw wrapped;
   }
