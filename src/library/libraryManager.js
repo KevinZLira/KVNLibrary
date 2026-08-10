@@ -15,7 +15,7 @@ const assetManager = require("./assetManager");
 
 let cachedLibraryFolder = null;
 let categoriesCache = null;
-const assetsCacheByCategoryPath = new Map();
+const folderContentsCache = new Map();
 
 /**
  * Retorna a pasta da biblioteca já escolhida em uma sessão anterior, ou
@@ -55,24 +55,37 @@ async function loadCategories() {
   return categoriesCache;
 }
 
-async function loadAssets(category) {
-  if (assetsCacheByCategoryPath.has(category.path)) {
-    return assetsCacheByCategoryPath.get(category.path);
+/**
+ * Lê o conteúdo de uma pasta (uma categoria de topo, ou qualquer subpasta
+ * dentro dela) - tanto as subpastas navagáveis quanto os arquivos que
+ * estão direto nela. Isso permite organizar cada categoria com quantos
+ * níveis de subpastas o usuário quiser (ex.: Transitions/Zoom/arquivo.mp4),
+ * em vez de exigir que os arquivos fiquem direto na pasta da categoria.
+ */
+async function loadFolderContents(folder) {
+  if (folderContentsCache.has(folder.path)) {
+    return folderContentsCache.get(folder.path);
   }
-  const assets = await assetManager.getAssetsForCategory(category);
-  assetsCacheByCategoryPath.set(category.path, assets);
-  return assets;
+
+  const [subfolders, assets] = await Promise.all([
+    categoryManager.getCategories(folder.folderEntry),
+    assetManager.getAssetsForCategory(folder),
+  ]);
+
+  const result = { subfolders, assets };
+  folderContentsCache.set(folder.path, result);
+  return result;
 }
 
 function invalidateCache() {
   categoriesCache = null;
-  assetsCacheByCategoryPath.clear();
+  folderContentsCache.clear();
 }
 
 module.exports = {
   getLibraryFolder,
   chooseLibraryFolder,
   loadCategories,
-  loadAssets,
+  loadFolderContents,
   invalidateCache,
 };

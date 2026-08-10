@@ -122,6 +122,11 @@ Premiere Library/
 Cada subpasta de primeiro nível vira uma categoria automaticamente — não é preciso alterar
 código para adicionar uma categoria nova, basta criar a pasta e clicar em **Refresh Library**.
 
+Dentro de uma categoria, você pode organizar os arquivos em quantos níveis de subpasta
+quiser (ex.: `Transitions/Zoom/whoosh.mp4`) — o painel mostra as subpastas como itens
+navegáveis junto com os arquivos daquele nível, então nada precisa ficar solto direto na
+pasta da categoria.
+
 Os assets **nunca** são copiados para dentro do plugin — ele só lê a pasta escolhida. Você
 pode adicionar, remover, reorganizar e fazer backup dela livremente.
 
@@ -195,7 +200,7 @@ O painel mostra mensagens específicas (não falha silenciosamente) para:
 
 - **V2**: thumbnails reais, preview, busca funcional, favoritos, filtros.
 - **V3**: drag & drop, inserção na timeline, inserção na posição do playhead, escolha de track.
-- **V4**: tags, subcategorias, múltiplas bibliotecas, histórico de assets usados.
+- **V4**: tags, múltiplas bibliotecas, histórico de assets usados.
 - **V5**: suporte dedicado a MOGRT/presets, instalação de assets pelo próprio painel,
   gerenciamento avançado da biblioteca.
 

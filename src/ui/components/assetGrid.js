@@ -18,7 +18,7 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
   if (assets.length === 0) {
     const empty = document.createElement("p");
     empty.className = "kvn-empty-state";
-    empty.textContent = "Nenhum asset nesta categoria.";
+    empty.textContent = "Nenhum arquivo aqui.";
     container.appendChild(empty);
     return;
   }

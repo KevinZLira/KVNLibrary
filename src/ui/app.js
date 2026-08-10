@@ -4,6 +4,11 @@
  * janela do painel (mesmo padrão do sample oficial da Adobe), já que os
  * hooks de ciclo de vida hide()/destroy() de painel não são confiáveis no
  * Premiere no momento.
+ *
+ * Navegação: o nível 0 (raiz da biblioteca) sempre mostra só categorias
+ * (subpastas). A partir daí, qualquer nível mostra tanto subpastas quanto
+ * arquivos - assim o usuário pode organizar cada categoria com quantos
+ * níveis de subpasta quiser (ex.: Transitions/Zoom/arquivo.mp4).
  */
 
 const libraryManager = require("../library/libraryManager");
@@ -16,7 +21,9 @@ const { showStatus, clearStatus } = require("./components/statusBar");
 
 const elements = {};
 
-let activeCategory = null;
+// Pilha de pastas visitadas a partir de uma categoria de topo. Vazia = tela
+// de categorias (raiz da biblioteca).
+let navigationStack = [];
 let selectedAsset = null;
 
 function cacheElements() {
@@ -33,6 +40,7 @@ function cacheElements() {
   elements.categoriesView = document.getElementById("categories-view");
   elements.categoriesList = document.getElementById("categories-list");
   elements.assetsView = document.getElementById("assets-view");
+  elements.subfoldersList = document.getElementById("subfolders-list");
   elements.assetsGrid = document.getElementById("assets-grid");
   elements.activeCategoryLabel = document.getElementById("active-category-label");
   elements.backButton = document.getElementById("back-button");
@@ -42,6 +50,7 @@ function cacheElements() {
 }
 
 function showNoFolderView() {
+  navigationStack = [];
   elements.noFolderView.classList.remove("kvn-hidden");
   elements.categoriesView.classList.add("kvn-hidden");
   elements.assetsView.classList.add("kvn-hidden");
@@ -49,7 +58,7 @@ function showNoFolderView() {
 }
 
 function showCategoriesView() {
-  activeCategory = null;
+  navigationStack = [];
   selectedAsset = null;
   elements.noFolderView.classList.add("kvn-hidden");
   elements.categoriesView.classList.remove("kvn-hidden");
@@ -57,14 +66,8 @@ function showCategoriesView() {
   elements.actionBar.classList.add("kvn-hidden");
 }
 
-function showAssetsView(category) {
-  activeCategory = category;
-  selectedAsset = null;
-  elements.activeCategoryLabel.textContent = category.name.toUpperCase();
-  elements.noFolderView.classList.add("kvn-hidden");
-  elements.categoriesView.classList.add("kvn-hidden");
-  elements.assetsView.classList.remove("kvn-hidden");
-  elements.actionBar.classList.add("kvn-hidden");
+function getCurrentFolder() {
+  return navigationStack[navigationStack.length - 1] || null;
 }
 
 async function updateLibraryPathDisplay() {
@@ -78,7 +81,7 @@ async function loadAndRenderCategories() {
   try {
     const categories = await libraryManager.loadCategories();
     showCategoriesView();
-    renderCategories(elements.categoriesList, categories, handleSelectCategory);
+    renderCategories(elements.categoriesList, categories, handleSelectFolder);
   } catch (error) {
     if (error.code === "NO_LIBRARY_FOLDER") {
       showNoFolderView();
@@ -90,21 +93,65 @@ async function loadAndRenderCategories() {
   }
 }
 
-async function handleSelectCategory(category) {
-  showAssetsView(category);
+/**
+ * Mostra o conteúdo de uma pasta (categoria de topo ou qualquer subpasta
+ * dela): subpastas navagáveis e/ou arquivos. Não mexe em navigationStack -
+ * quem decide empilhar/desempilhar é o chamador (handleSelectFolder ou
+ * handleBack).
+ */
+function enterFolder(folder) {
+  selectedAsset = null;
+
+  elements.activeCategoryLabel.textContent = folder.name.toUpperCase();
+  elements.noFolderView.classList.add("kvn-hidden");
+  elements.categoriesView.classList.add("kvn-hidden");
+  elements.assetsView.classList.remove("kvn-hidden");
+  elements.actionBar.classList.add("kvn-hidden");
+
+  loadAndRenderFolderContents(folder);
+}
+
+function handleSelectFolder(folder) {
+  navigationStack.push(folder);
+  enterFolder(folder);
+}
+
+function handleBack() {
+  navigationStack.pop();
+  const parent = getCurrentFolder();
+  if (parent) {
+    enterFolder(parent);
+  } else {
+    loadAndRenderCategories();
+  }
+}
+
+async function loadAndRenderFolderContents(folder) {
+  elements.subfoldersList.innerHTML = "";
   elements.assetsGrid.innerHTML = "";
 
   try {
-    const assets = await libraryManager.loadAssets(category);
-    renderAssets(
-      elements.assetsGrid,
-      assets,
-      selectedAsset && selectedAsset.path,
-      handleSelectAsset,
-      handleImportAsset
-    );
+    const { subfolders, assets } = await libraryManager.loadFolderContents(folder);
+
+    if (subfolders.length === 0 && assets.length === 0) {
+      renderAssets(elements.assetsGrid, [], null, handleSelectAsset, handleImportAsset);
+      return;
+    }
+
+    if (subfolders.length > 0) {
+      renderCategories(elements.subfoldersList, subfolders, handleSelectFolder);
+    }
+    if (assets.length > 0) {
+      renderAssets(
+        elements.assetsGrid,
+        assets,
+        selectedAsset && selectedAsset.path,
+        handleSelectAsset,
+        handleImportAsset
+      );
+    }
   } catch (error) {
-    showStatus(elements.statusBar, `Não foi possível ler "${category.name}": ${error.message}`, "error");
+    showStatus(elements.statusBar, `Não foi possível ler "${folder.name}": ${error.message}`, "error");
   }
 }
 
@@ -113,8 +160,13 @@ function handleSelectAsset(asset) {
   elements.selectedAssetName.textContent = asset.name;
   elements.actionBar.classList.remove("kvn-hidden");
 
+  const currentFolder = getCurrentFolder();
+  if (!currentFolder) {
+    return;
+  }
+
   // Re-render para refletir o card selecionado, usando o cache (sem custo de disco).
-  libraryManager.loadAssets(activeCategory).then((assets) => {
+  libraryManager.loadFolderContents(currentFolder).then(({ assets }) => {
     renderAssets(elements.assetsGrid, assets, selectedAsset.path, handleSelectAsset, handleImportAsset);
   });
 }
@@ -134,10 +186,14 @@ async function handleImportAsset(asset) {
 async function handleRefresh() {
   clearStatus(elements.statusBar);
   libraryManager.invalidateCache();
-  await loadAndRenderCategories();
-  if (activeCategory === null) {
-    showStatus(elements.statusBar, "Biblioteca atualizada.", "info");
+
+  const currentFolder = getCurrentFolder();
+  if (currentFolder) {
+    await loadAndRenderFolderContents(currentFolder);
+  } else {
+    await loadAndRenderCategories();
   }
+  showStatus(elements.statusBar, "Biblioteca atualizada.", "info");
 }
 
 async function handleChooseFolder() {
@@ -169,7 +225,7 @@ async function init() {
 
   elements.refreshButton.addEventListener("click", handleRefresh);
   elements.settingsButton.addEventListener("click", toggleSettingsInfo);
-  elements.backButton.addEventListener("click", showCategoriesView);
+  elements.backButton.addEventListener("click", handleBack);
   elements.selectFolderButton.addEventListener("click", handleChooseFolder);
   elements.changeFolderButton.addEventListener("click", handleChooseFolder);
   elements.importButton.addEventListener("click", () => {
