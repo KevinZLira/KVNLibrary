@@ -18,9 +18,13 @@ O que **não** está implementado ainda (de propósito — ver "Próximos passos
 thumbnails reais, inserção na timeline/playhead, drag & drop, tags, múltiplas bibliotecas,
 suporte dedicado a MOGRT.
 
+A localização da biblioteca **não é mais um caminho fixo no código** — o painel abre um
+seletor de pastas nativo do sistema operacional, então funciona tanto no Windows quanto no
+macOS, apontando para onde quer que sua pasta de assets esteja.
+
 ## Requisitos
 
-- **Windows 11**
+- **Windows 11** ou **macOS**
 - **Adobe Premiere Pro 25.6** ou mais recente, com **suporte a UXP** (versão em que a Adobe
   estabilizou a nova plataforma de extensibilidade, substituindo CEP/ExtendScript)
 - **UXP Developer Tool (UDT) 2.2+** — instalado via Creative Cloud Desktop
@@ -38,10 +42,14 @@ Pesquisa feita diretamente na documentação oficial da Adobe (`AdobeDocs/uxp-pr
   plugins novos, com engine JavaScript unificada (sem a ponte `CSInterface` do CEP).
 - APIs usadas neste plugin, todas confirmadas na referência oficial:
   - `require("premierepro")` → `Project.getActiveProject()`, `Project.importFiles()`,
-    `Project.getRootItem()`, `EventManager` / `Constants.ProjectEvent`.
-  - `require("fs")` (API estilo Node.js) para ler a pasta local da biblioteca, com a
-    permissão `"localFileSystem": "fullAccess"` declarada no `manifest.json`.
-  - `path` (módulo global do UXP) para manipulação de caminhos.
+    `EventManager` / `Constants.ProjectEvent`.
+  - `require("uxp").storage.localFileSystem` → `getFolder()` (seletor nativo de pastas,
+    funciona igual no Windows e no macOS), `Folder.getEntries()` para navegar nas
+    subpastas/arquivos, e `createPersistentToken()` / `getEntryForPersistentToken()` para
+    lembrar da pasta escolhida entre sessões, com a permissão `"localFileSystem": "request"`
+    declarada no `manifest.json` (o usuário concede acesso apenas à pasta que ele escolher,
+    não ao disco inteiro).
+  - `path` (módulo global do UXP) para manipulação de nomes/extensões.
 
 ### Limitações conhecidas (documentadas pela Adobe, não contornadas às escondidas)
 
@@ -51,10 +59,10 @@ Pesquisa feita diretamente na documentação oficial da Adobe (`AdobeDocs/uxp-pr
 - Não há, na referência pesquisada, uma API de geração de thumbnail/frame-grab — por isso o
   MVP usa um badge colorido por tipo de arquivo (VID/AUD/IMG/MGT/PST) em vez de thumbnail
   real.
-- A permissão `"fullAccess"` de sistema de arquivos é ampla: foi a opção necessária para ler
-  um caminho fixo (`D:\KVN\Premiere Library`) sem exigir seleção manual do usuário toda vez
-  que o painel abre. O usuário verá um consentimento de permissão local (sem rede) na
-  primeira vez que o plugin acessar o disco.
+- O token persistente que lembra a pasta escolhida não é garantido para sempre — a própria
+  documentação da Adobe avisa que mover/apagar a pasta, ou o SO revogar a permissão, pode
+  invalidá-lo. Quando isso acontece, o plugin detecta o erro e volta a pedir para o usuário
+  selecionar a pasta novamente (sem travar).
 - Inserção automática na timeline/posição do playhead **não foi implementada** neste MVP —
   a pesquisa inicial focou em `importFiles` (Project Panel). Isso fica para a V3, quando a
   API correspondente for pesquisada e confirmada da mesma forma.
@@ -69,10 +77,11 @@ KVNLibrary/                  ← raiz do plugin (é isso que o UDT carrega)
 ├── package.json / jsconfig.json  ← apenas tipos de desenvolvimento, sem build
 └── src/
     ├── config/
-    │   └── settings.js       ← caminho padrão da biblioteca (D:\KVN\Premiere Library)
+    │   └── settings.js       ← constantes gerais (nome do plugin)
     ├── utils/
-    │   └── fsUtils.js        ← wrapper sobre "fs" e "path" do UXP
+    │   └── fsUtils.js        ← wrapper sobre a API de Entry (Folder/File) do UXP
     ├── library/
+    │   ├── libraryLocation.js ← seletor de pasta + token persistente (Windows/macOS)
     │   ├── categoryManager.js ← lê subpastas de 1º nível = categorias
     │   ├── assetManager.js    ← lê arquivos de uma categoria e classifica por tipo
     │   └── libraryManager.js  ← orquestra + cache em memória (evita reler o disco)
@@ -92,41 +101,47 @@ restante.
 
 ## Biblioteca local
 
-O caminho padrão é `D:\KVN\Premiere Library\`, configurado em `src/config/settings.js`
-(`getLibraryRootPath()`). Cada subpasta de primeiro nível vira uma categoria automaticamente
-— não é preciso alterar código para adicionar uma categoria nova, basta criar a pasta:
+Na primeira vez que o painel abrir, ele vai mostrar um botão **"📁 Selecionar Pasta da
+Biblioteca"** — clique nele e escolha, no seletor nativo do seu sistema operacional, a pasta
+onde ficam os seus assets. Funciona igual no Windows e no macOS; não existe mais um caminho
+fixo no código.
+
+Exemplo de estrutura (qualquer nome/local serve, isto é só ilustrativo):
 
 ```
-D:\KVN\Premiere Library\
-├── Transitions\
-├── Sound Effects\
-├── Whooshes\
-├── Text\
-├── Overlays\
-├── Effects\
-└── Presets\
+Premiere Library/
+├── Transitions/
+├── Sound Effects/
+├── Whooshes/
+├── Text/
+├── Overlays/
+├── Effects/
+└── Presets/
 ```
 
-Os assets **nunca** são copiados para dentro do plugin — o plugin só lê o caminho
-configurado. Você pode adicionar, remover, reorganizar e fazer backup da pasta livremente;
-clique em **Refresh Library** no painel para o plugin reler o disco.
+Cada subpasta de primeiro nível vira uma categoria automaticamente — não é preciso alterar
+código para adicionar uma categoria nova, basta criar a pasta e clicar em **Refresh Library**.
 
-Para alterar o caminho por enquanto, edite `DEFAULT_LIBRARY_ROOT_PATH` em
-`src/config/settings.js` (uma tela de configurações fica para uma versão futura, conforme
-combinado no escopo do MVP).
+Os assets **nunca** são copiados para dentro do plugin — ele só lê a pasta escolhida. Você
+pode adicionar, remover, reorganizar e fazer backup dela livremente.
 
-## Instalação (Windows 11)
+A escolha é lembrada entre sessões (via token persistente do UXP), então você não precisa
+selecionar de novo toda vez que abrir o Premiere. Para trocar de pasta a qualquer momento,
+clique no ⚙ no topo do painel e depois em **"Trocar pasta da biblioteca"**.
+
+## Instalação (Windows 11 ou macOS)
 
 1. Instale o **Creative Cloud Desktop** e, dentro dele, o **UXP Developer Tool (UDT)**.
 2. No Premiere Pro: **Edit/Settings → Plugins → Enable developer mode** (marque a caixa) e
    reinicie o Premiere.
-3. Clone/baixe este repositório em qualquer pasta do Windows, por exemplo `C:\Dev\KVNLibrary`.
+3. Clone/baixe este repositório em qualquer pasta do seu computador, por exemplo
+   `C:\Dev\KVNLibrary` (Windows) ou `~/Dev/KVNLibrary` (macOS).
 4. (Opcional, só para autocomplete no editor) na raiz do projeto:
    ```
    npm install
    ```
-5. Crie a estrutura de pastas da sua biblioteca em `D:\KVN\Premiere Library\` (ou ajuste o
-   caminho em `src/config/settings.js` antes deste passo, se quiser usar outro local).
+5. Tenha uma pasta com seus assets em algum lugar do disco (pode ser em qualquer local — você
+   vai selecioná-la de dentro do painel, no primeiro passo do teste abaixo).
 
 ## Desenvolvimento / como testar no Premiere
 
@@ -145,21 +160,23 @@ Se você alterar `manifest.json`, é necessário **Unload** e **Load & Watch** n
 
 1. Abra o Premiere Pro e um projeto.
 2. Abra o painel **KVN Library** (`Window → UXP Plugins → KVN Library`).
-3. Veja as categorias detectadas automaticamente a partir das subpastas de
-   `D:\KVN\Premiere Library\`.
-4. Clique em `Transitions` (ou outra categoria com arquivos).
-5. Veja os arquivos listados na grade.
-6. Clique em um asset para selecioná-lo (ou dê duplo clique para importar direto).
-7. Clique em **Importar para o Projeto**.
-8. Confira o asset aparecendo no **Project Panel** do Premiere.
-9. Adicione um arquivo novo na pasta correspondente no disco, volte ao painel e clique em
-   **Refresh Library (↻)** — o novo arquivo deve aparecer sem reiniciar o Premiere.
+3. Clique em **"📁 Selecionar Pasta da Biblioteca"** e escolha a pasta com seus assets.
+4. Veja as categorias detectadas automaticamente a partir das subpastas.
+5. Clique em `Transitions` (ou outra categoria com arquivos).
+6. Veja os arquivos listados na grade.
+7. Clique em um asset para selecioná-lo (ou dê duplo clique para importar direto).
+8. Clique em **Importar para o Projeto**.
+9. Confira o asset aparecendo no **Project Panel** do Premiere.
+10. Adicione um arquivo novo na pasta correspondente no disco, volte ao painel e clique em
+    **Refresh Library (↻)** — o novo arquivo deve aparecer sem reiniciar o Premiere.
 
 ## Tratamento de erros
 
 O painel mostra mensagens específicas (não falha silenciosamente) para:
 
-- Pasta da biblioteca não encontrada no caminho configurado.
+- Nenhuma pasta de biblioteca selecionada ainda (tela de boas-vindas com botão de seleção).
+- Token de acesso à pasta inválido (pasta movida/apagada, permissão revogada) — volta a pedir
+  a seleção em vez de travar.
 - Categoria vazia.
 - Nenhum projeto aberto no Premiere no momento da importação.
 - Falha reportada pela API do Premiere ao importar um arquivo.
@@ -178,8 +195,7 @@ O painel mostra mensagens específicas (não falha silenciosamente) para:
 
 - **V2**: thumbnails reais, preview, busca funcional, favoritos, filtros.
 - **V3**: drag & drop, inserção na timeline, inserção na posição do playhead, escolha de track.
-- **V4**: tags, subcategorias, múltiplas bibliotecas, tela de configuração de caminho,
-  histórico de assets usados.
+- **V4**: tags, subcategorias, múltiplas bibliotecas, histórico de assets usados.
 - **V5**: suporte dedicado a MOGRT/presets, instalação de assets pelo próprio painel,
   gerenciamento avançado da biblioteca.
 

@@ -31,10 +31,12 @@
 
       <div id="settings-info" class="kvn-settings-info kvn-hidden">
         <p class="kvn-settings-label">Library Location:</p>
-        <p id="library-path" class="kvn-settings-value"></p>
-        <p class="kvn-settings-hint">
-          Para alterar, edite <code>src/config/settings.js</code>.
+        <p id="library-path" class="kvn-settings-value">
+          Nenhuma pasta selecionada.
         </p>
+        <button id="change-folder-button" class="kvn-secondary-button">
+          Trocar pasta da biblioteca
+        </button>
       </div>
 
       <div class="kvn-search-row">
@@ -50,8 +52,21 @@
 
       <div id="status-bar" class="kvn-status-bar kvn-hidden"></div>
 
+      <!-- View: nenhuma pasta de biblioteca escolhida ainda -->
+      <section id="no-folder-view" class="kvn-view kvn-hidden">
+        <div class="kvn-onboarding">
+          <p class="kvn-onboarding-text">
+            Selecione a pasta no seu computador onde ficam os seus assets
+            (transições, efeitos sonoros, overlays, presets etc.).
+          </p>
+          <button id="select-folder-button" class="kvn-primary-button">
+            📁 Selecionar Pasta da Biblioteca
+          </button>
+        </div>
+      </section>
+
       <!-- View: lista de categorias -->
-      <section id="categories-view" class="kvn-view">
+      <section id="categories-view" class="kvn-view kvn-hidden">
         <h2 class="kvn-section-label">CATEGORIAS</h2>
         <div id="categories-list" class="kvn-categories-list"></div>
       </section>

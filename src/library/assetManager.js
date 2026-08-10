@@ -37,14 +37,14 @@ function getKind(extension) {
 }
 
 async function getAssetsForCategory(category) {
-  const { files } = await fsUtils.listDirectoryEntries(category.path);
+  const { files } = await fsUtils.listDirectoryEntries(category.folderEntry);
 
   return files
-    .map((file) => {
-      const extension = path.extname(file.name).toLowerCase();
+    .map((entry) => {
+      const extension = path.extname(entry.name).toLowerCase();
       return {
-        name: file.name,
-        path: file.path,
+        name: entry.name,
+        path: entry.nativePath,
         extension,
         kind: getKind(extension),
         category: category.name,

@@ -320,3 +320,36 @@ body {
   color: var(--kvn-text-muted);
   cursor: not-allowed;
 }
+
+.kvn-secondary-button {
+  background: transparent;
+  color: var(--kvn-accent-hover);
+  border: 1px solid var(--kvn-border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.kvn-secondary-button:hover {
+  background: var(--kvn-bg-card-hover);
+  color: var(--kvn-accent);
+}
+
+.kvn-onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+  padding: 32px 12px;
+  height: 100%;
+}
+
+.kvn-onboarding-text {
+  color: var(--kvn-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 240px;
+}

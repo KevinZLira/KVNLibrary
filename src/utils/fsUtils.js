@@ -1,48 +1,31 @@
 /**
- * Wrapper fino sobre os módulos globais/nativos do UXP ("fs" e "path")
- * usados para ler a biblioteca local de assets fora do sandbox do plugin.
- * Requer "localFileSystem": "fullAccess" no manifest.json.
+ * Wrapper fino sobre a API de Entry do UXP (Folder/File), usada para ler a
+ * biblioteca local a partir de uma pasta concedida via seletor nativo
+ * ("localFileSystem": "request" no manifest.json). Diferente da API "fs"
+ * baseada em string de caminho, aqui a navegação é feita chamando
+ * Folder.getEntries() a partir de uma referência de pasta já concedida.
  */
-
-const fs = require("fs");
 
 const IGNORED_ENTRY_NAMES = new Set([".DS_Store", "Thumbs.db", "desktop.ini"]);
 
-async function pathExists(targetPath) {
-  try {
-    await fs.lstat(targetPath);
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
 /**
- * Lê o conteúdo direto (não recursivo) de um diretório e separa
- * subpastas de arquivos. Entradas ilegíveis (permissão, link quebrado)
- * são ignoradas silenciosamente em vez de derrubar a listagem inteira.
+ * Lê o conteúdo direto (não recursivo) de uma pasta e separa subpastas de
+ * arquivos, ambos como Entry do UXP (com .name, .nativePath, etc).
  */
-async function listDirectoryEntries(dirPath) {
-  const entryNames = await fs.readdir(dirPath);
+async function listDirectoryEntries(folderEntry) {
+  const entries = await folderEntry.getEntries();
   const directories = [];
   const files = [];
 
-  for (const name of entryNames) {
-    if (IGNORED_ENTRY_NAMES.has(name)) {
+  for (const entry of entries) {
+    if (IGNORED_ENTRY_NAMES.has(entry.name)) {
       continue;
     }
 
-    const entryPath = path.join(dirPath, name);
-
-    try {
-      const stats = await fs.lstat(entryPath);
-      if (stats.isDirectory()) {
-        directories.push({ name, path: entryPath });
-      } else if (stats.isFile()) {
-        files.push({ name, path: entryPath });
-      }
-    } catch (error) {
-      // Entrada não pôde ser lida (permissão insuficiente, etc). Ignorar.
+    if (entry.isFolder) {
+      directories.push(entry);
+    } else if (entry.isFile) {
+      files.push(entry);
     }
   }
 
@@ -50,6 +33,5 @@ async function listDirectoryEntries(dirPath) {
 }
 
 module.exports = {
-  pathExists,
   listDirectoryEntries,
 };

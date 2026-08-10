@@ -9,7 +9,7 @@
   },
   "manifestVersion": 5,
   "requiredPermissions": {
-    "localFileSystem": "fullAccess"
+    "localFileSystem": "request"
   },
   "entrypoints": [
     {

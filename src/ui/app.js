@@ -9,7 +9,7 @@
 const libraryManager = require("../library/libraryManager");
 const importManager = require("../premiere/importManager");
 const projectManager = require("../premiere/projectManager");
-const { getLibraryRootPath, PLUGIN_NAME } = require("../config/settings");
+const { PLUGIN_NAME } = require("../config/settings");
 const { renderCategories } = require("./components/categoryList");
 const { renderAssets } = require("./components/assetGrid");
 const { showStatus, clearStatus } = require("./components/statusBar");
@@ -25,8 +25,11 @@ function cacheElements() {
   elements.settingsButton = document.getElementById("settings-button");
   elements.settingsInfo = document.getElementById("settings-info");
   elements.libraryPath = document.getElementById("library-path");
+  elements.changeFolderButton = document.getElementById("change-folder-button");
   elements.projectStatus = document.getElementById("project-status");
   elements.statusBar = document.getElementById("status-bar");
+  elements.noFolderView = document.getElementById("no-folder-view");
+  elements.selectFolderButton = document.getElementById("select-folder-button");
   elements.categoriesView = document.getElementById("categories-view");
   elements.categoriesList = document.getElementById("categories-list");
   elements.assetsView = document.getElementById("assets-view");
@@ -38,9 +41,17 @@ function cacheElements() {
   elements.importButton = document.getElementById("import-button");
 }
 
+function showNoFolderView() {
+  elements.noFolderView.classList.remove("kvn-hidden");
+  elements.categoriesView.classList.add("kvn-hidden");
+  elements.assetsView.classList.add("kvn-hidden");
+  elements.actionBar.classList.add("kvn-hidden");
+}
+
 function showCategoriesView() {
   activeCategory = null;
   selectedAsset = null;
+  elements.noFolderView.classList.add("kvn-hidden");
   elements.categoriesView.classList.remove("kvn-hidden");
   elements.assetsView.classList.add("kvn-hidden");
   elements.actionBar.classList.add("kvn-hidden");
@@ -50,16 +61,30 @@ function showAssetsView(category) {
   activeCategory = category;
   selectedAsset = null;
   elements.activeCategoryLabel.textContent = category.name.toUpperCase();
+  elements.noFolderView.classList.add("kvn-hidden");
   elements.categoriesView.classList.add("kvn-hidden");
   elements.assetsView.classList.remove("kvn-hidden");
   elements.actionBar.classList.add("kvn-hidden");
 }
 
+async function updateLibraryPathDisplay() {
+  const folder = await libraryManager.getLibraryFolder();
+  elements.libraryPath.textContent = folder
+    ? folder.nativePath
+    : "Nenhuma pasta selecionada.";
+}
+
 async function loadAndRenderCategories() {
   try {
     const categories = await libraryManager.loadCategories();
+    showCategoriesView();
     renderCategories(elements.categoriesList, categories, handleSelectCategory);
   } catch (error) {
+    if (error.code === "NO_LIBRARY_FOLDER") {
+      showNoFolderView();
+      return;
+    }
+    showCategoriesView();
     renderCategories(elements.categoriesList, [], () => {});
     showStatus(elements.statusBar, error.message, "error");
   }
@@ -109,9 +134,21 @@ async function handleImportAsset(asset) {
 async function handleRefresh() {
   clearStatus(elements.statusBar);
   libraryManager.invalidateCache();
-  showCategoriesView();
   await loadAndRenderCategories();
-  showStatus(elements.statusBar, "Biblioteca atualizada.", "info");
+  if (activeCategory === null) {
+    showStatus(elements.statusBar, "Biblioteca atualizada.", "info");
+  }
+}
+
+async function handleChooseFolder() {
+  const folder = await libraryManager.chooseLibraryFolder();
+  if (!folder) {
+    // Usuário cancelou o seletor de pastas - nada muda.
+    return;
+  }
+  await updateLibraryPathDisplay();
+  await loadAndRenderCategories();
+  showStatus(elements.statusBar, "Biblioteca atualizada.", "success");
 }
 
 function toggleSettingsInfo() {
@@ -129,11 +166,12 @@ async function init() {
   cacheElements();
 
   elements.title.textContent = PLUGIN_NAME;
-  elements.libraryPath.textContent = getLibraryRootPath();
 
   elements.refreshButton.addEventListener("click", handleRefresh);
   elements.settingsButton.addEventListener("click", toggleSettingsInfo);
   elements.backButton.addEventListener("click", showCategoriesView);
+  elements.selectFolderButton.addEventListener("click", handleChooseFolder);
+  elements.changeFolderButton.addEventListener("click", handleChooseFolder);
   elements.importButton.addEventListener("click", () => {
     if (selectedAsset) {
       handleImportAsset(selectedAsset);
@@ -143,7 +181,7 @@ async function init() {
   projectManager.onProjectActivated(updateProjectStatus);
   await updateProjectStatus();
 
-  showCategoriesView();
+  await updateLibraryPathDisplay();
   await loadAndRenderCategories();
 }
 
