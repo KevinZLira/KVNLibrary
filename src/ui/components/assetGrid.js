@@ -1,6 +1,13 @@
 /**
  * Renderiza a grade de assets de uma categoria. Puramente apresentacional:
  * recebe dados prontos e callbacks de seleção/duplo clique.
+ *
+ * Preview real: usa Entry.url (concedido via seletor de pastas) diretamente
+ * em <img>/<video>, já que o painel roda num webview Chromium comum e não
+ * existe (nem foi encontrada na pesquisa) uma API dedicada de geração de
+ * thumbnail no Premiere. Áudio não tem um "frame" visual, então mantém o
+ * badge colorido e ganha um botão de reprodução (▶) para pré-ouvir o som
+ * sem precisar importar primeiro.
  */
 
 const KIND_LABEL = {
@@ -11,6 +18,82 @@ const KIND_LABEL = {
   preset: "PST",
   file: "FILE",
 };
+
+function createBadgeThumb(asset) {
+  const thumb = document.createElement("div");
+  thumb.className = `kvn-asset-thumb kvn-asset-thumb-${asset.kind}`;
+  thumb.textContent = KIND_LABEL[asset.kind] || "FILE";
+  return thumb;
+}
+
+function createImageThumb(asset) {
+  const img = document.createElement("img");
+  img.className = "kvn-asset-thumb kvn-asset-thumb-media";
+  img.src = asset.url;
+  img.loading = "lazy";
+  img.alt = asset.name;
+  img.addEventListener("error", () => {
+    img.replaceWith(createBadgeThumb(asset));
+  });
+  return img;
+}
+
+function createVideoThumb(asset) {
+  const video = document.createElement("video");
+  video.className = "kvn-asset-thumb kvn-asset-thumb-media";
+  video.src = asset.url;
+  video.muted = true;
+  video.preload = "metadata";
+  video.addEventListener("error", () => {
+    video.replaceWith(createBadgeThumb(asset));
+  });
+  return video;
+}
+
+function createAudioThumb(asset) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "kvn-asset-thumb kvn-asset-thumb-audio kvn-audio-thumb";
+  wrapper.textContent = "▶";
+
+  const audio = document.createElement("audio");
+  audio.src = asset.url;
+  audio.preload = "none";
+  wrapper.appendChild(audio);
+
+  wrapper.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (audio.paused) {
+      wrapper.textContent = "❚❚";
+      wrapper.appendChild(audio);
+      audio.play();
+    } else {
+      audio.pause();
+    }
+  });
+  audio.addEventListener("ended", () => {
+    wrapper.textContent = "▶";
+    wrapper.appendChild(audio);
+  });
+  audio.addEventListener("pause", () => {
+    wrapper.textContent = "▶";
+    wrapper.appendChild(audio);
+  });
+
+  return wrapper;
+}
+
+function createThumb(asset) {
+  if (asset.kind === "image" && asset.url) {
+    return createImageThumb(asset);
+  }
+  if (asset.kind === "video" && asset.url) {
+    return createVideoThumb(asset);
+  }
+  if (asset.kind === "audio" && asset.url) {
+    return createAudioThumb(asset);
+  }
+  return createBadgeThumb(asset);
+}
 
 function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImportAsset) {
   container.innerHTML = "";
@@ -30,9 +113,7 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
       card.classList.add("kvn-asset-selected");
     }
 
-    const thumb = document.createElement("div");
-    thumb.className = `kvn-asset-thumb kvn-asset-thumb-${asset.kind}`;
-    thumb.textContent = KIND_LABEL[asset.kind] || "FILE";
+    const thumb = createThumb(asset);
 
     const name = document.createElement("div");
     name.className = "kvn-asset-name";

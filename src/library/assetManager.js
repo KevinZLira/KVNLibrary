@@ -39,6 +39,7 @@ function toAsset(entry, categoryLabel) {
   return {
     name: entry.name,
     path: entry.nativePath,
+    url: entry.url,
     extension,
     kind: getKind(extension),
     category: categoryLabel,

@@ -7,16 +7,17 @@ sem depender de assinatura, serviço externo ou biblioteca proprietária de terc
 Este projeto **não** usa código nem assets de nenhum produto de terceiros. É uma ferramenta
 própria, pensada para uma biblioteca pessoal guardada em disco.
 
-## Status: MVP
+## Status: MVP+
 
 O fluxo abaixo já funciona de ponta a ponta:
 
-> Abrir painel → ver categorias → entrar em uma categoria → ver assets → selecionar →
-> importar → asset aparece no Project Panel do Premiere → Refresh detecta arquivos novos.
+> Abrir painel → ver categorias → entrar em uma categoria → ver assets com preview real →
+> selecionar → importar para o Project Panel **ou** inserir direto na timeline na posição
+> do playhead → Refresh detecta arquivos novos.
 
 O que **não** está implementado ainda (de propósito — ver "Próximos passos"): busca,
-thumbnails reais, inserção na timeline/playhead, drag & drop, tags, múltiplas bibliotecas,
-suporte dedicado a MOGRT.
+escolha de track na inserção, drag & drop, tags, múltiplas bibliotecas, suporte dedicado a
+MOGRT.
 
 A localização da biblioteca **não é mais um caminho fixo no código** — o painel abre um
 seletor de pastas nativo do sistema operacional, então funciona tanto no Windows quanto no
@@ -42,13 +43,18 @@ Pesquisa feita diretamente na documentação oficial da Adobe (`AdobeDocs/uxp-pr
   plugins novos, com engine JavaScript unificada (sem a ponte `CSInterface` do CEP).
 - APIs usadas neste plugin, todas confirmadas na referência oficial:
   - `require("premierepro")` → `Project.getActiveProject()`, `Project.importFiles()`,
-    `EventManager` / `Constants.ProjectEvent`.
+    `Project.getActiveSequence()`, `Project.getRootItem()`, `Project.executeTransaction()`,
+    `Project.lockedAccess()`, `SequenceEditor.getEditor()` /
+    `createInsertProjectItemAction()`, `Sequence.getPlayerPosition()`, `EventManager` /
+    `Constants.ProjectEvent`.
   - `require("uxp").storage.localFileSystem` → `getFolder()` (seletor nativo de pastas,
     funciona igual no Windows e no macOS), `Folder.getEntries()` para navegar nas
     subpastas/arquivos, e `createPersistentToken()` / `getEntryForPersistentToken()` para
     lembrar da pasta escolhida entre sessões, com a permissão `"localFileSystem": "request"`
     declarada no `manifest.json` (o usuário concede acesso apenas à pasta que ele escolher,
-    não ao disco inteiro).
+    não ao disco inteiro). O `Entry.url` desses arquivos é usado diretamente em `<img>`,
+    `<video>` e `<audio>` para o preview - o painel roda num webview comum, então não foi
+    necessária nenhuma API de geração de thumbnail.
   - `path` (módulo global do UXP) para manipulação de nomes/extensões.
 
 ### Limitações conhecidas (documentadas pela Adobe, não contornadas às escondidas)
@@ -56,16 +62,23 @@ Pesquisa feita diretamente na documentação oficial da Adobe (`AdobeDocs/uxp-pr
 - Os hooks de ciclo de vida `hide()` e `destroy()` de painel **não são confiáveis** no
   Premiere atualmente. Por isso a inicialização do painel acontece no evento `load` da
   janela (mesmo padrão usado nos samples oficiais da Adobe), e não nesses hooks.
-- Não há, na referência pesquisada, uma API de geração de thumbnail/frame-grab — por isso o
-  MVP usa um badge colorido por tipo de arquivo (VID/AUD/IMG/MGT/PST) em vez de thumbnail
-  real.
+- Não há, na referência pesquisada, uma API de geração de thumbnail/frame-grab dedicada -
+  imagens e vídeos usam o `Entry.url` real do arquivo (primeiro frame do vídeo, no caso);
+  áudio não tem um "frame" visual, então mantém um badge colorido com um botão de reprodução
+  para pré-ouvir antes de importar.
 - O token persistente que lembra a pasta escolhida não é garantido para sempre — a própria
   documentação da Adobe avisa que mover/apagar a pasta, ou o SO revogar a permissão, pode
   invalidá-lo. Quando isso acontece, o plugin detecta o erro e volta a pedir para o usuário
   selecionar a pasta novamente (sem travar).
-- Inserção automática na timeline/posição do playhead **não foi implementada** neste MVP —
-  a pesquisa inicial focou em `importFiles` (Project Panel). Isso fica para a V3, quando a
-  API correspondente for pesquisada e confirmada da mesma forma.
+- `Project.importFiles()` documentado aceita `targetBin` como opcional/`undefined`, mas na
+  versão do Premiere testada isso lançou `"Illegal Parameter type"` - esse binding nativo
+  específico não aceitou `undefined` explícito nesse parâmetro. O plugin chama a função só
+  com `(filePaths, suppressUI)`, deixando o Premiere usar o padrão (importa na raiz do
+  Project Panel).
+- Inserção na timeline sempre usa a primeira trilha de vídeo e de áudio (V1/A1) - escolha de
+  track fica para uma etapa futura. O `ProjectItem` recém-importado é localizado pelo nome
+  do arquivo no bin raiz do projeto, já que `importFiles()` não retorna uma referência direta
+  ao item criado.
 
 ## Estrutura do projeto
 
@@ -88,7 +101,8 @@ KVNLibrary/                  ← raiz do plugin (é isso que o UDT carrega)
     ├── premiere/
     │   ├── premiereBridge.js  ← ponto único de require("premierepro")
     │   ├── projectManager.js  ← projeto ativo + evento ACTIVATED
-    │   └── importManager.js   ← Project.importFiles() com tratamento de erro
+    │   ├── importManager.js   ← Project.importFiles() com tratamento de erro
+    │   └── timelineManager.js ← insere na sequência ativa via SequenceEditor
     └── ui/
         ├── app.js             ← controlador da UI (estado, eventos, navegação)
         ├── components/        ← renderização pura (categorias, grade de assets, status)
@@ -170,8 +184,9 @@ Se você alterar `manifest.json`, é necessário **Unload** e **Load & Watch** n
 5. Clique em `Transitions` (ou outra categoria com arquivos).
 6. Veja os arquivos listados na grade.
 7. Clique em um asset para selecioná-lo (ou dê duplo clique para importar direto).
-8. Clique em **Importar para o Projeto**.
-9. Confira o asset aparecendo no **Project Panel** do Premiere.
+8. Clique em **Importar** (leva para o Project Panel) ou **Inserir na Timeline** (importa se
+   necessário e insere na sequência ativa, na posição do playhead, em V1/A1).
+9. Confira o asset aparecendo no **Project Panel** e/ou na timeline do Premiere.
 10. Adicione um arquivo novo na pasta correspondente no disco, volte ao painel e clique em
     **Refresh Library (↻)** — o novo arquivo deve aparecer sem reiniciar o Premiere.
 
@@ -183,7 +198,8 @@ O painel mostra mensagens específicas (não falha silenciosamente) para:
 - Token de acesso à pasta inválido (pasta movida/apagada, permissão revogada) — volta a pedir
   a seleção em vez de travar.
 - Categoria vazia.
-- Nenhum projeto aberto no Premiere no momento da importação.
+- Nenhum projeto aberto no Premiere no momento da importação/inserção.
+- Nenhuma sequência ativa no momento de inserir na timeline.
 - Falha reportada pela API do Premiere ao importar um arquivo.
 - Entradas do disco ilegíveis (permissão insuficiente) — são ignoradas na listagem em vez de
   travar o painel inteiro.
@@ -198,8 +214,8 @@ O painel mostra mensagens específicas (não falha silenciosamente) para:
 
 ## Próximos passos (fora do escopo deste MVP)
 
-- **V2**: thumbnails reais, preview, busca funcional, favoritos, filtros.
-- **V3**: drag & drop, inserção na timeline, inserção na posição do playhead, escolha de track.
+- **V2**: busca funcional, favoritos, filtros.
+- **V3**: drag & drop, escolha de track na inserção.
 - **V4**: tags, múltiplas bibliotecas, histórico de assets usados.
 - **V5**: suporte dedicado a MOGRT/presets, instalação de assets pelo próprio painel,
   gerenciamento avançado da biblioteca.

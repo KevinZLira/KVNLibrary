@@ -272,6 +272,20 @@ body {
 .kvn-asset-thumb-preset { background: #ff9f9f; }
 .kvn-asset-thumb-file { background: #b8b8b8; }
 
+.kvn-asset-thumb-media {
+  object-fit: cover;
+  background: #000000;
+}
+
+.kvn-audio-thumb {
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.kvn-audio-thumb audio {
+  display: none;
+}
+
 .kvn-asset-name {
   font-size: 10.5px;
   word-break: break-word;
@@ -286,9 +300,8 @@ body {
 
 .kvn-action-bar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   padding: 8px 10px;
   border-top: 1px solid var(--kvn-border);
   background: var(--kvn-bg-elevated);
@@ -301,6 +314,16 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.kvn-action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.kvn-action-buttons .kvn-primary-button {
+  flex: 1;
+  padding: 7px 6px;
 }
 
 .kvn-primary-button {

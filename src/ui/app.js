@@ -13,6 +13,7 @@
 
 const libraryManager = require("../library/libraryManager");
 const importManager = require("../premiere/importManager");
+const timelineManager = require("../premiere/timelineManager");
 const projectManager = require("../premiere/projectManager");
 const { PLUGIN_NAME } = require("../config/settings");
 const { renderCategories } = require("./components/categoryList");
@@ -47,6 +48,7 @@ function cacheElements() {
   elements.actionBar = document.getElementById("action-bar");
   elements.selectedAssetName = document.getElementById("selected-asset-name");
   elements.importButton = document.getElementById("import-button");
+  elements.insertButton = document.getElementById("insert-button");
 }
 
 function showNoFolderView() {
@@ -136,12 +138,6 @@ async function loadAndRenderFolderContents(folder) {
   try {
     const { subfolders, assets } = await libraryManager.loadFolderContents(folder);
 
-    // DIAGNÓSTICO TEMPORÁRIO - remover depois de confirmar a renderização.
-    console.log(
-      `[KVN] loadAndRenderFolderContents("${folder.name}") -> ${subfolders.length} subpasta(s), ${assets.length} asset(s)`,
-      { subfolders, assets }
-    );
-
     if (subfolders.length === 0 && assets.length === 0) {
       renderAssets(elements.assetsGrid, [], null, handleSelectAsset, handleImportAsset);
       return true;
@@ -192,6 +188,18 @@ async function handleImportAsset(asset) {
     showStatus(elements.statusBar, error.message, "error");
   } finally {
     elements.importButton.disabled = false;
+  }
+}
+
+async function handleInsertAsset(asset) {
+  elements.insertButton.disabled = true;
+  try {
+    await timelineManager.insertAssetAtPlayhead(asset);
+    showStatus(elements.statusBar, `"${asset.name}" inserido na timeline.`, "success");
+  } catch (error) {
+    showStatus(elements.statusBar, error.message, "error");
+  } finally {
+    elements.insertButton.disabled = false;
   }
 }
 
@@ -246,6 +254,11 @@ async function init() {
   elements.importButton.addEventListener("click", () => {
     if (selectedAsset) {
       handleImportAsset(selectedAsset);
+    }
+  });
+  elements.insertButton.addEventListener("click", () => {
+    if (selectedAsset) {
+      handleInsertAsset(selectedAsset);
     }
   });
 
