@@ -23,15 +23,25 @@ async function importAsset(asset) {
     throw error;
   }
 
+  // DIAGNÓSTICO TEMPORÁRIO - remover depois de identificar o erro real.
+  console.log("[KVN] Chamando project.importFiles() com:", [asset.path]);
+
   let success = false;
   try {
     success = await project.importFiles([asset.path], true, undefined, false);
+    console.log("[KVN] project.importFiles() retornou:", success);
   } catch (error) {
-    // DIAGNÓSTICO TEMPORÁRIO - remover depois de identificar o erro real.
-    console.error("[KVN] Erro ao chamar project.importFiles():", error);
-    console.error("[KVN] asset.path usado:", asset.path);
-    console.error("[KVN] typeof error:", typeof error, "| keys:", Object.keys(error || {}));
-    const wrapped = new Error(`Falha ao importar "${asset.name}": ${error.message}`);
+    console.log(
+      "[KVN] project.importFiles() lançou erro:",
+      error,
+      "| typeof:",
+      typeof error,
+      "| String(error):",
+      String(error),
+      "| keys:",
+      error && typeof error === "object" ? Object.keys(error) : "n/a"
+    );
+    const wrapped = new Error(`Falha ao importar "${asset.name}": ${error && error.message}`);
     wrapped.code = "IMPORT_ERROR";
     throw wrapped;
   }
