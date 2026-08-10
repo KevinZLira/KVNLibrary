@@ -72,40 +72,94 @@ function createAudioThumb(asset) {
   progress.className = "kvn-audio-thumb-progress";
   wrapper.appendChild(progress);
 
-  const audio = document.createElement("audio");
-  audio.src = asset.url;
-  audio.preload = "none";
-  wrapper.appendChild(audio);
+  let audioBuffer = null;
+  let sourceNode = null;
+  let startedAtContextTime = 0;
+  let pausedAtOffset = 0;
+  let isPlaying = false;
+  let progressRafId = null;
 
   waveform
     .decodeAudioFromUrl(asset.url)
-    .then((audioBuffer) => waveform.drawWaveform(canvas, audioBuffer))
-    .catch(() => {
-      // Sem waveform pra esse arquivo (ex.: codec não suportado pela Web
-      // Audio API) - o play/pause continua funcionando normalmente.
+    .then((buffer) => {
+      audioBuffer = buffer;
+      waveform.drawWaveform(canvas, audioBuffer);
+    })
+    .catch((error) => {
+      // Sem preview pra esse arquivo (ex.: codec não suportado pela Web
+      // Audio API) - fica só a linha reta e o play não faz nada.
+      console.error(`[KVN] Não foi possível decodificar "${asset.name}" para pré-escuta:`, error);
     });
+
+  function stopSourceNode() {
+    if (sourceNode) {
+      sourceNode.onended = null;
+      try {
+        sourceNode.stop();
+      } catch (error) {
+        // Já parado - ignora.
+      }
+      sourceNode = null;
+    }
+  }
+
+  function updateProgressLoop() {
+    if (!isPlaying || !audioBuffer) {
+      return;
+    }
+    const elapsed =
+      waveform.getAudioContext().currentTime - startedAtContextTime + pausedAtOffset;
+    const ratio = Math.min(1, elapsed / audioBuffer.duration);
+    progress.style.width = `${ratio * 100}%`;
+    if (elapsed >= audioBuffer.duration) {
+      stopPlayback(true);
+      return;
+    }
+    progressRafId = requestAnimationFrame(updateProgressLoop);
+  }
+
+  function startPlayback() {
+    const context = waveform.getAudioContext();
+    sourceNode = context.createBufferSource();
+    sourceNode.buffer = audioBuffer;
+    sourceNode.connect(context.destination);
+    sourceNode.onended = () => {
+      if (isPlaying) {
+        stopPlayback(true);
+      }
+    };
+    startedAtContextTime = context.currentTime;
+    sourceNode.start(0, pausedAtOffset);
+    isPlaying = true;
+    playIcon.textContent = "❚❚";
+    progressRafId = requestAnimationFrame(updateProgressLoop);
+  }
+
+  function stopPlayback(reachedEnd) {
+    isPlaying = false;
+    playIcon.textContent = "▶";
+    if (progressRafId) {
+      cancelAnimationFrame(progressRafId);
+      progressRafId = null;
+    }
+    if (reachedEnd) {
+      pausedAtOffset = 0;
+      progress.style.width = "0%";
+    } else {
+      pausedAtOffset += waveform.getAudioContext().currentTime - startedAtContextTime;
+    }
+    stopSourceNode();
+  }
 
   wrapper.addEventListener("click", (event) => {
     event.stopPropagation();
-    if (audio.paused) {
-      audio.play();
-    } else {
-      audio.pause();
+    if (!audioBuffer) {
+      return;
     }
-  });
-  audio.addEventListener("play", () => {
-    playIcon.textContent = "❚❚";
-  });
-  audio.addEventListener("pause", () => {
-    playIcon.textContent = "▶";
-  });
-  audio.addEventListener("ended", () => {
-    playIcon.textContent = "▶";
-    progress.style.width = "0%";
-  });
-  audio.addEventListener("timeupdate", () => {
-    if (audio.duration) {
-      progress.style.width = `${(audio.currentTime / audio.duration) * 100}%`;
+    if (isPlaying) {
+      stopPlayback(false);
+    } else {
+      startPlayback();
     }
   });
 

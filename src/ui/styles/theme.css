@@ -321,10 +321,6 @@ body {
   pointer-events: none;
 }
 
-.kvn-audio-thumb audio {
-  display: none;
-}
-
 .kvn-asset-name {
   font-size: 10.5px;
   word-break: break-word;

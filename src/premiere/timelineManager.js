@@ -41,7 +41,13 @@ async function findLastEmptyTrackIndex(sequence, kind) {
   const count = await getCount();
   for (let index = count - 1; index >= 0; index--) {
     const track = await getTrack(index);
-    const clipItems = track.getTrackItems(ppro.Constants.TrackItemType.CLIP, false);
+    // A referência oficial documenta getTrackItems() como síncrono (retorna
+    // o array direto, sem Promise), mas o binding nativo desta versão do
+    // Premiere devolveu uma Promise na prática - Promise.resolve()+await
+    // funciona nos dois casos sem assumir qual é real.
+    const clipItems = await Promise.resolve(
+      track.getTrackItems(ppro.Constants.TrackItemType.CLIP, false)
+    );
     if (!clipItems || clipItems.length === 0) {
       return index;
     }

@@ -1,9 +1,13 @@
 /**
- * Gera e desenha a forma de onda de um arquivo de áudio usando a Web Audio
- * API do próprio Chromium embutido no UXP (AudioContext.decodeAudioData) -
- * não existe API dedicada de waveform no Premiere, então isso é puramente
- * client-side, a partir dos bytes do arquivo (via fetch do Entry.url, o
- * mesmo usado no <audio> de pré-escuta).
+ * Gera a forma de onda e toca a pré-escuta de um arquivo de áudio usando a
+ * Web Audio API do próprio Chromium embutido no UXP - não existe API
+ * dedicada de waveform no Premiere, então isso é puramente client-side, a
+ * partir dos bytes do arquivo (via fetch do Entry.url).
+ *
+ * A reprodução usa AudioBufferSourceNode (não a tag <audio>) porque o
+ * decode via fetch()+decodeAudioData() é o caminho comprovadamente
+ * confiável nesse webview (é o mesmo usado pra desenhar a forma de onda);
+ * a tag <audio> com o Entry.url como src não tocava nesse ambiente.
  */
 
 let sharedAudioContext = null;
@@ -56,6 +60,7 @@ function drawWaveform(canvas, audioBuffer) {
 }
 
 module.exports = {
+  getAudioContext,
   decodeAudioFromUrl,
   drawPlaceholderLine,
   drawWaveform,
