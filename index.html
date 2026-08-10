@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width" />
+    <link rel="stylesheet" href="src/ui/styles/theme.css" />
+    <script src="index.js"></script>
+  </head>
+  <body>
+    <div class="kvn-panel">
+      <header class="kvn-header">
+        <h1 id="plugin-title" class="kvn-title">KVN Library</h1>
+        <div class="kvn-header-actions">
+          <button
+            id="refresh-button"
+            class="kvn-icon-button"
+            title="Refresh Library"
+            aria-label="Refresh Library"
+          >
+            &#8635;
+          </button>
+          <button
+            id="settings-button"
+            class="kvn-icon-button"
+            title="Configuração da biblioteca"
+            aria-label="Configuração da biblioteca"
+          >
+            &#9881;
+          </button>
+        </div>
+      </header>
+
+      <div id="settings-info" class="kvn-settings-info kvn-hidden">
+        <p class="kvn-settings-label">Library Location:</p>
+        <p id="library-path" class="kvn-settings-value"></p>
+        <p class="kvn-settings-hint">
+          Para alterar, edite <code>src/config/settings.js</code>.
+        </p>
+      </div>
+
+      <div class="kvn-search-row">
+        <input
+          type="text"
+          class="kvn-search-input"
+          placeholder="🔎 Buscar assets..."
+          disabled
+        />
+      </div>
+
+      <p id="project-status" class="kvn-project-status"></p>
+
+      <div id="status-bar" class="kvn-status-bar kvn-hidden"></div>
+
+      <!-- View: lista de categorias -->
+      <section id="categories-view" class="kvn-view">
+        <h2 class="kvn-section-label">CATEGORIAS</h2>
+        <div id="categories-list" class="kvn-categories-list"></div>
+      </section>
+
+      <!-- View: assets de uma categoria -->
+      <section id="assets-view" class="kvn-view kvn-hidden">
+        <button id="back-button" class="kvn-back-button">
+          &#8592; Categorias
+        </button>
+        <h2 id="active-category-label" class="kvn-section-label"></h2>
+        <div id="assets-grid" class="kvn-assets-grid"></div>
+      </section>
+
+      <footer id="action-bar" class="kvn-action-bar kvn-hidden">
+        <span id="selected-asset-name" class="kvn-selected-asset-name"></span>
+        <button id="import-button" class="kvn-primary-button">
+          Importar para o Projeto
+        </button>
+      </footer>
+    </div>
+  </body>
+</html>

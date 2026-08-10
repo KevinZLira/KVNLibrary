@@ -1,0 +1,9 @@
+{
+  "name": "kvn-library",
+  "version": "1.0.0",
+  "description": "KVN Library - biblioteca pessoal de assets para Adobe Premiere Pro (plugin UXP).",
+  "private": true,
+  "devDependencies": {
+    "@adobe/premierepro": "^26.3.0"
+  }
+}
