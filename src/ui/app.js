@@ -82,14 +82,17 @@ async function loadAndRenderCategories() {
     const categories = await libraryManager.loadCategories();
     showCategoriesView();
     renderCategories(elements.categoriesList, categories, handleSelectFolder);
+    return true;
   } catch (error) {
     if (error.code === "NO_LIBRARY_FOLDER") {
       showNoFolderView();
-      return;
+      return false;
     }
+    console.error("[KVN] Erro ao carregar categorias:", error);
     showCategoriesView();
     renderCategories(elements.categoriesList, [], () => {});
     showStatus(elements.statusBar, error.message, "error");
+    return false;
   }
 }
 
@@ -133,9 +136,15 @@ async function loadAndRenderFolderContents(folder) {
   try {
     const { subfolders, assets } = await libraryManager.loadFolderContents(folder);
 
+    // DIAGNÓSTICO TEMPORÁRIO - remover depois de confirmar a renderização.
+    console.log(
+      `[KVN] loadAndRenderFolderContents("${folder.name}") -> ${subfolders.length} subpasta(s), ${assets.length} asset(s)`,
+      { subfolders, assets }
+    );
+
     if (subfolders.length === 0 && assets.length === 0) {
       renderAssets(elements.assetsGrid, [], null, handleSelectAsset, handleImportAsset);
-      return;
+      return true;
     }
 
     if (subfolders.length > 0) {
@@ -150,8 +159,11 @@ async function loadAndRenderFolderContents(folder) {
         handleImportAsset
       );
     }
+    return true;
   } catch (error) {
+    console.error(`[KVN] Erro ao carregar "${folder.name}":`, error);
     showStatus(elements.statusBar, `Não foi possível ler "${folder.name}": ${error.message}`, "error");
+    return false;
   }
 }
 
@@ -188,12 +200,15 @@ async function handleRefresh() {
   libraryManager.invalidateCache();
 
   const currentFolder = getCurrentFolder();
-  if (currentFolder) {
-    await loadAndRenderFolderContents(currentFolder);
-  } else {
-    await loadAndRenderCategories();
+  const success = currentFolder
+    ? await loadAndRenderFolderContents(currentFolder)
+    : await loadAndRenderCategories();
+
+  // Só mostra "atualizado" se nada deu erro no meio do caminho - senão a
+  // mensagem de erro (mostrada dentro das funções acima) fica escondida.
+  if (success) {
+    showStatus(elements.statusBar, "Biblioteca atualizada.", "info");
   }
-  showStatus(elements.statusBar, "Biblioteca atualizada.", "info");
 }
 
 async function handleChooseFolder() {
