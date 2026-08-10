@@ -17,19 +17,6 @@ async function listDirectoryEntries(folderEntry) {
   const directories = [];
   const files = [];
 
-  // DIAGNÓSTICO TEMPORÁRIO - remover depois de identificar por que os
-  // arquivos não aparecem. Abra o console do UDT (botão "{}" na linha do
-  // plugin) para ver esta saída.
-  console.log(
-    `[KVN] listDirectoryEntries("${folderEntry.name}") -> ${entries.length} entrada(s):`,
-    entries.map((e) => ({
-      name: e.name,
-      isFile: e.isFile,
-      isFolder: e.isFolder,
-      nativePath: e.nativePath,
-    }))
-  );
-
   for (const entry of entries) {
     if (IGNORED_ENTRY_NAMES.has(entry.name)) {
       continue;
