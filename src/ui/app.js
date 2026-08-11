@@ -16,7 +16,6 @@ const importManager = require("../premiere/importManager");
 const timelineManager = require("../premiere/timelineManager");
 const previewManager = require("../premiere/previewManager");
 const projectManager = require("../premiere/projectManager");
-const { PLUGIN_NAME } = require("../config/settings");
 const { renderLibraryTree, updateTreeSelection } = require("./components/libraryTree");
 const { renderAssets, updateSelection } = require("./components/assetGrid");
 const { showStatus, clearStatus } = require("./components/statusBar");
@@ -231,8 +230,6 @@ async function updateProjectStatus() {
 
 async function init() {
   cacheElements();
-
-  elements.title.textContent = PLUGIN_NAME;
 
   elements.refreshButton.addEventListener("click", handleRefresh);
   elements.settingsButton.addEventListener("click", toggleSettingsInfo);

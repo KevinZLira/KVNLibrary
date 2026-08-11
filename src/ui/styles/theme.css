@@ -69,13 +69,16 @@ body {
 }
 
 .kvn-title {
-  font-size: 13px;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
   margin: 0;
-  letter-spacing: 0.4px;
-  color: var(--kvn-accent);
-  text-shadow: 0 0 6px var(--kvn-accent-glow);
   flex-shrink: 0;
+}
+
+.kvn-logo {
+  height: 26px;
+  width: auto;
+  display: block;
 }
 
 .kvn-header-actions {
@@ -231,9 +234,8 @@ body {
   padding: 10px;
 }
 
-/* Blocos sólidos, sem cantos arredondados, com um ícone de pasta verde
-   (SVG embutido, pra ter cor fixa - emoji de pasta não aceita "color")
-   + chevron + nome, igual ao rascunho. Pasta e arquivo usam tons de
+/* Blocos sólidos, sem cantos arredondados, com o ícone de pasta real do
+   rascunho (Icone.png) + chevron + nome. Pasta e arquivo usam tons de
    fundo diferentes (não por profundidade, por tipo de linha). */
 .kvn-tree-folder-row {
   display: flex;
@@ -263,10 +265,10 @@ body {
 }
 
 .kvn-tree-folder-icon {
-  width: 13px;
-  height: 11px;
+  width: 14px;
+  height: 12px;
   flex-shrink: 0;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 16'%3E%3Cpath fill='%237ff425' d='M2 2h6l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z'/%3E%3C/svg%3E");
+  background-image: url("../../../Icone.png");
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
