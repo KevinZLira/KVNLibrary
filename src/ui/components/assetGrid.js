@@ -74,10 +74,13 @@ function createAudioThumb(asset) {
   // O UXP não documenta <audio> nem a Web Audio API na sua lista de
   // globais (só HTMLVideoElement) - reaproveita o <video>, que já
   // funciona para os thumbs de vídeo, como player de áudio escondido.
+  // preload="metadata" (igual aos thumbs de vídeo, que funcionam) em vez
+  // de "none", que pode nunca carregar de fato até o play() ser chamado.
   const player = document.createElement("video");
   player.className = "kvn-audio-player";
   player.src = asset.url;
-  player.preload = "none";
+  player.preload = "metadata";
+  player.volume = 1;
   wrapper.appendChild(player);
 
   let progressRafId = null;
@@ -104,16 +107,35 @@ function createAudioThumb(asset) {
     playIcon.textContent = "▶";
     progress.style.width = "0%";
   });
+  // DIAGNÓSTICO TEMPORÁRIO - o som ainda não tocou mesmo sem erro
+  // aparente. Estas linhas mostram o ciclo de vida real do <video> usado
+  // como player. Abra o console do UDT e cole a saída ao clicar num card.
+  player.addEventListener("loadedmetadata", () => {
+    console.log(
+      `[KVN] "${asset.name}" loadedmetadata - duration=${player.duration} readyState=${player.readyState}`
+    );
+  });
   player.addEventListener("error", () => {
-    console.error(`[KVN] Não foi possível carregar "${asset.name}" para pré-escuta.`);
+    const mediaError = player.error;
+    console.error(
+      `[KVN] "${asset.name}" evento error - code=${mediaError && mediaError.code} message=${mediaError && mediaError.message}`
+    );
   });
 
   wrapper.addEventListener("click", (event) => {
     event.stopPropagation();
+    console.log(
+      `[KVN] clique em "${asset.name}" - paused=${player.paused} readyState=${player.readyState} volume=${player.volume} muted=${player.muted}`
+    );
     if (player.paused) {
-      player.play().catch((error) => {
-        console.error(`[KVN] Falha ao tocar "${asset.name}":`, error);
-      });
+      player
+        .play()
+        .then(() => {
+          console.log(`[KVN] "${asset.name}" play() resolveu - paused=${player.paused}`);
+        })
+        .catch((error) => {
+          console.error(`[KVN] "${asset.name}" play() rejeitou:`, error);
+        });
     } else {
       player.pause();
     }
