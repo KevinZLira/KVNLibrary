@@ -126,11 +126,13 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
     return;
   }
 
-  // root explícito (a área com scroll de verdade, .kvn-view) em vez de
-  // root:null (viewport do documento) - o painel não rola no nível do
-  // documento, só essa div interna, e sem apontar isso o observer nunca
-  // reportava interseção nenhuma nesse ambiente (nenhuma thumbnail
-  // chegava a carregar).
+  // root explícito (a área com scroll de verdade, .kvn-library-main) em
+  // vez de root:null (viewport do documento) - o painel não rola no
+  // nível do documento, só essa div interna, e sem apontar isso o
+  // observer nunca reportava interseção nenhuma nesse ambiente (nenhuma
+  // thumbnail chegava a carregar). ".kvn-view" era a classe antiga, de
+  // antes do redesign da árvore+grade - não existe mais como ancestral
+  // da grade, então o observer estava silenciosamente sem root nenhum.
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
@@ -143,7 +145,7 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
         observer.unobserve(entry.target);
       }
     },
-    { root: container.closest(".kvn-view"), rootMargin: LAZY_ROOT_MARGIN }
+    { root: container.closest(".kvn-library-main"), rootMargin: LAZY_ROOT_MARGIN }
   );
 
   function appendCard(asset) {

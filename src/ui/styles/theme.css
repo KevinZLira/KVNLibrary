@@ -447,7 +447,12 @@ body {
    borrado atrás da pílula sólida). */
 .kvn-primary-button,
 .kvn-secondary-button {
-  background: linear-gradient(180deg, var(--kvn-accent-hover), var(--kvn-accent));
+  /* background-color sólido de base + gradiente por cima em camada
+     separada - se o linear-gradient não for aceito nesse webview, o
+     verde sólido continua garantido em vez de cair pro cinza padrão do
+     botão nativo do SO. */
+  background-color: var(--kvn-accent);
+  background-image: linear-gradient(180deg, var(--kvn-accent-hover), var(--kvn-accent));
   color: var(--kvn-accent-text);
   border: none;
   border-radius: 20px;
