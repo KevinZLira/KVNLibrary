@@ -438,27 +438,42 @@ body {
    metade da altura do botão é clampado errado nesse webview e vaza o
    box-shadow em formato de losango pelos cantos. appearance:none evita
    que o Chromium embutido desenhe o botão nativo do SO por cima (o que
-   também causava esse artefato). */
+   também causava esse artefato).
+   Glow em duas camadas (uma justa e forte + uma larga e suave) pra
+   reproduzir o efeito do rascunho (lá era literalmente um retângulo
+   borrado atrás da pílula sólida). */
 .kvn-primary-button,
 .kvn-secondary-button {
-  background: var(--kvn-accent);
+  background: linear-gradient(180deg, var(--kvn-accent-hover), var(--kvn-accent));
   color: var(--kvn-accent-text);
   border: none;
   border-radius: 20px;
   padding: 9px 16px;
   font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0.2px;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: 0 0 12px 0 var(--kvn-accent-glow);
+  box-shadow:
+    0 0 6px 0 rgba(127, 244, 37, 0.9),
+    0 0 22px 2px var(--kvn-accent-glow);
   appearance: none;
   -webkit-appearance: none;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .kvn-primary-button:hover,
 .kvn-secondary-button:hover {
   background: var(--kvn-accent-hover);
-  box-shadow: 0 0 18px 2px var(--kvn-accent-glow);
+  box-shadow:
+    0 0 8px 1px rgba(151, 255, 92, 0.95),
+    0 0 30px 4px var(--kvn-accent-glow);
+  transform: translateY(-1px);
+}
+
+.kvn-primary-button:active,
+.kvn-secondary-button:active {
+  transform: translateY(0);
 }
 
 .kvn-primary-button:disabled {
@@ -466,6 +481,7 @@ body {
   color: var(--kvn-text-muted);
   cursor: not-allowed;
   box-shadow: none;
+  transform: none;
 }
 
 .kvn-onboarding {
