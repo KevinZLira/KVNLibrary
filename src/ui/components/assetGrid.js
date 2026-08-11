@@ -14,11 +14,18 @@
  * atribuído quando o card entra (ou está perto de entrar) na área visível,
  * via IntersectionObserver - um observer novo por chamada de renderAssets,
  * descartado junto com os cards antigos ao trocar de pasta.
+ *
+ * Renderização em lotes: mesmo sem carregar mídia nenhuma, criar milhares
+ * de elementos de card (+ registrar cada um no observer) num laço síncrono
+ * só trava o painel de outro jeito. Por isso os cards são criados em lotes
+ * pequenos, um por frame (requestAnimationFrame), deixando a interface
+ * respirar entre eles.
  */
 
 const waveform = require("./waveform");
 
 const LAZY_ROOT_MARGIN = "300px";
+const RENDER_CHUNK_SIZE = 40;
 
 const KIND_LABEL = {
   video: "VID",
@@ -105,6 +112,12 @@ function createThumb(asset, observer) {
 function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImportAsset, onPreviewAsset) {
   container.innerHTML = "";
 
+  // Identifica essa chamada específica de renderAssets - se uma navegação
+  // nova acontecer antes dos lotes acabarem, o laço abaixo para de
+  // adicionar cards no container (que já pertence à renderização nova).
+  const renderToken = (container.kvnRenderToken || 0) + 1;
+  container.kvnRenderToken = renderToken;
+
   if (assets.length === 0) {
     const empty = document.createElement("p");
     empty.className = "kvn-empty-state";
@@ -128,7 +141,7 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
     { rootMargin: LAZY_ROOT_MARGIN }
   );
 
-  for (const asset of assets) {
+  function appendCard(asset) {
     const card = document.createElement("div");
     card.className = "kvn-asset-card";
     card.dataset.assetPath = asset.path;
@@ -163,6 +176,21 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
 
     container.appendChild(card);
   }
+
+  let index = 0;
+  function appendChunk() {
+    if (container.kvnRenderToken !== renderToken) {
+      return;
+    }
+    const end = Math.min(index + RENDER_CHUNK_SIZE, assets.length);
+    for (; index < end; index++) {
+      appendCard(assets[index]);
+    }
+    if (index < assets.length) {
+      requestAnimationFrame(appendChunk);
+    }
+  }
+  appendChunk();
 }
 
 /**
