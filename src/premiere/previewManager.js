@@ -13,6 +13,15 @@
 const ppro = require("./premiereBridge");
 const projectManager = require("./projectManager");
 
+// Pequena espera entre abrir o clipe e mandar tocar - openFilePath()
+// resolve antes do Source Monitor terminar de carregar o clipe de fato,
+// então um play() imediato às vezes não "pega".
+const PLAY_DELAY_MS = 400;
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function previewAsset(asset) {
   const project = await projectManager.getActiveProject();
   if (!project) {
@@ -38,6 +47,8 @@ async function previewAsset(asset) {
     error.code = "PREVIEW_OPEN_FAILED";
     throw error;
   }
+
+  await wait(PLAY_DELAY_MS);
 
   try {
     await ppro.SourceMonitor.play(1);
