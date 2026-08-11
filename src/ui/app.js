@@ -152,7 +152,8 @@ async function loadAndRenderFolderContents(folder) {
         assets,
         selectedAsset && selectedAsset.path,
         handleSelectAsset,
-        handleImportAsset
+        handleImportAsset,
+        handlePreviewError
       );
     }
     return true;
@@ -175,8 +176,19 @@ function handleSelectAsset(asset) {
 
   // Re-render para refletir o card selecionado, usando o cache (sem custo de disco).
   libraryManager.loadFolderContents(currentFolder).then(({ assets }) => {
-    renderAssets(elements.assetsGrid, assets, selectedAsset.path, handleSelectAsset, handleImportAsset);
+    renderAssets(
+      elements.assetsGrid,
+      assets,
+      selectedAsset.path,
+      handleSelectAsset,
+      handleImportAsset,
+      handlePreviewError
+    );
   });
+}
+
+function handlePreviewError(message) {
+  showStatus(elements.statusBar, message, "error");
 }
 
 async function handleImportAsset(asset) {

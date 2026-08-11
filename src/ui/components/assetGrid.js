@@ -3,12 +3,15 @@
  * recebe dados prontos e callbacks de seleção/duplo clique.
  *
  * Preview real: usa Entry.url (concedido via seletor de pastas) diretamente
- * em <img>/<video>. Áudio toca via um <video> escondido (ver comentário em
- * createAudioThumb) com play/pause e barra de progresso, e ganha um padrão
- * visual decorativo (ver waveform.js) - não é uma forma de onda real, já
- * que o UXP não expõe Web Audio API nem <audio> pra decodificar o áudio.
+ * em <img>/<video>. Áudio ganha um padrão visual decorativo (ver
+ * waveform.js - não é uma forma de onda real, o UXP não expõe Web Audio
+ * API nem <audio>) e pré-escuta via shell.openPath() abrindo o arquivo no
+ * player padrão do sistema operacional - testamos exaustivamente tocar
+ * áudio dentro do painel (via <video> escondido) e o play() é aceito mas
+ * nunca decodifica de fato nesse ambiente, então esse é o caminho real.
  */
 
+const { shell } = require("uxp");
 const waveform = require("./waveform");
 
 const KIND_LABEL = {
@@ -51,9 +54,10 @@ function createVideoThumb(asset) {
   return video;
 }
 
-function createAudioThumb(asset) {
+function createAudioThumb(asset, onPreviewError) {
   const wrapper = document.createElement("div");
   wrapper.className = "kvn-asset-thumb kvn-audio-thumb";
+  wrapper.title = "Pré-escutar no player padrão do sistema";
 
   const canvas = document.createElement("canvas");
   canvas.className = "kvn-audio-waveform";
@@ -67,112 +71,45 @@ function createAudioThumb(asset) {
   playIcon.textContent = "▶";
   wrapper.appendChild(playIcon);
 
-  const progress = document.createElement("div");
-  progress.className = "kvn-audio-thumb-progress";
-  wrapper.appendChild(progress);
-
-  // O UXP não documenta <audio> nem a Web Audio API na sua lista de
-  // globais (só HTMLVideoElement) - reaproveita o <video>, que já
-  // funciona para os thumbs de vídeo, como player de áudio escondido.
-  // O src só é atribuído no primeiro clique (ver togglePlayback), não na
-  // criação do card: uma pasta com muitos áudios cria um <video> por
-  // arquivo de uma vez, e todos com preload disparando o carregamento em
-  // paralelo pode estar saturando o player de mídia do UXP e impedindo a
-  // reprodução real de tocar.
-  const player = document.createElement("video");
-  player.className = "kvn-audio-player";
-  player.preload = "none";
-  player.volume = 1;
-  player.muted = false;
-  wrapper.appendChild(player);
-
-  let srcAssigned = false;
-  let progressRafId = null;
-  // Controla o estado tocando/pausado por conta própria, em vez de ler
-  // player.paused - no UXP essa propriedade não parte de "true" como num
-  // browser normal (confirmado: no primeiro clique já veio paused=false),
-  // então não dá pra confiar nela pra decidir a direção do toggle.
-  let isPlaying = false;
-
-  function updateProgressLoop() {
-    if (!isPlaying || !player.duration) {
-      progressRafId = null;
-      return;
-    }
-    progress.style.width = `${(player.currentTime / player.duration) * 100}%`;
-    progressRafId = requestAnimationFrame(updateProgressLoop);
-  }
-
-  player.addEventListener("play", () => {
-    console.log(`[KVN] "${asset.name}" evento play disparado`);
-    isPlaying = true;
-    playIcon.textContent = "❚❚";
-    if (!progressRafId) {
-      progressRafId = requestAnimationFrame(updateProgressLoop);
-    }
-  });
-  player.addEventListener("pause", () => {
-    isPlaying = false;
-    playIcon.textContent = "▶";
-  });
-  player.addEventListener("ended", () => {
-    isPlaying = false;
-    playIcon.textContent = "▶";
-    progress.style.width = "0%";
-  });
-  player.addEventListener("error", () => {
-    const mediaError = player.error;
-    console.error(
-      `[KVN] "${asset.name}" evento error - code=${mediaError && mediaError.code} message=${mediaError && mediaError.message}`
-    );
-  });
-
-  // O card inteiro toca/pausa (não só a tira de 34px da forma de onda) -
-  // ver comentário em renderAssets sobre por que isso é ligado lá fora.
+  // Pré-escuta via shell.openPath() (exige a permissão "launchProcess" no
+  // manifest.json) - abre o arquivo no player padrão do sistema
+  // operacional. Não é embutido no painel: o UXP não expõe <audio> nem
+  // Web Audio API, e o <video> aceita play() mas nunca decodifica de fato
+  // (testado exaustivamente). shell.openPath() mostra um diálogo de
+  // consentimento do usuário na primeira vez.
   wrapper.togglePlayback = () => {
-    if (!srcAssigned) {
-      player.src = asset.url;
-      player.load();
-      srcAssigned = true;
-    }
-    console.log(
-      `[KVN] togglePlayback("${asset.name}") - isPlaying=${isPlaying} player.paused=${player.paused} duration=${player.duration} muted=${player.muted} volume=${player.volume}`
-    );
-    if (!isPlaying) {
-      const playResult = player.play();
-      if (playResult && typeof playResult.then === "function") {
-        playResult
-          .then(() => {
-            console.log(
-              `[KVN] "${asset.name}" play() resolveu - muted=${player.muted} volume=${player.volume} currentTime=${player.currentTime}`
-            );
-          })
-          .catch((error) => {
-            console.error(`[KVN] "${asset.name}" play() rejeitou:`, error);
-          });
-      }
-    } else {
-      player.pause();
-    }
+    shell
+      .openPath(asset.path, `Pré-escutar "${asset.name}" antes de importar`)
+      .then((result) => {
+        if (result && onPreviewError) {
+          onPreviewError(`Não foi possível abrir "${asset.name}" para pré-escuta: ${result}`);
+        }
+      })
+      .catch((error) => {
+        if (onPreviewError) {
+          const message = error && error.message ? error.message : String(error);
+          onPreviewError(`Não foi possível abrir "${asset.name}" para pré-escuta: ${message}`);
+        }
+      });
   };
 
   return wrapper;
 }
 
-function createThumb(asset) {
+function createThumb(asset, onPreviewError) {
   if (asset.kind === "image" && asset.url) {
     return createImageThumb(asset);
   }
   if (asset.kind === "video" && asset.url) {
     return createVideoThumb(asset);
   }
-  if (asset.kind === "audio" && asset.url) {
-    return createAudioThumb(asset);
+  if (asset.kind === "audio") {
+    return createAudioThumb(asset, onPreviewError);
   }
   return createBadgeThumb(asset);
 }
 
-function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImportAsset) {
+function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImportAsset, onPreviewError) {
   container.innerHTML = "";
 
   if (assets.length === 0) {
@@ -190,7 +127,7 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
       card.classList.add("kvn-asset-selected");
     }
 
-    const thumb = createThumb(asset);
+    const thumb = createThumb(asset, onPreviewError);
 
     const name = document.createElement("div");
     name.className = "kvn-asset-name";
@@ -204,13 +141,10 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
     card.appendChild(name);
     card.appendChild(ext);
 
-    // Para áudio, clicar em qualquer lugar do card toca/pausa - não só na
+    // Para áudio, clicar em qualquer lugar do card pré-escuta - não só na
     // tira da forma de onda (o usuário clica onde for mais natural, ex.:
     // em cima do nome do arquivo, e isso precisa funcionar também).
     card.addEventListener("click", () => {
-      if (asset.kind === "audio") {
-        console.log(`[KVN] card click - "${asset.name}"`);
-      }
       onSelectAsset(asset);
       if (typeof thumb.togglePlayback === "function") {
         thumb.togglePlayback();

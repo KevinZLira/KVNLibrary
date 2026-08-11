@@ -9,7 +9,10 @@
   },
   "manifestVersion": 5,
   "requiredPermissions": {
-    "localFileSystem": "request"
+    "localFileSystem": "request",
+    "launchProcess": {
+      "extensions": [".wav", ".mp3", ".aac", ".m4a", ".aif", ".aiff"]
+    }
   },
   "entrypoints": [
     {

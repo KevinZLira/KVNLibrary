@@ -12,9 +12,9 @@ própria, pensada para uma biblioteca pessoal guardada em disco.
 O fluxo abaixo já funciona de ponta a ponta:
 
 > Abrir painel → ver categorias → entrar em uma categoria → ver assets com preview real
-> (incluindo pré-escuta com play/pause para áudio) → selecionar → importar para o Project
-> Panel **ou** inserir direto na timeline, na posição do playhead e sempre na última trilha
-> de vídeo/áudio vazia → Refresh detecta arquivos novos.
+> (incluindo pré-escuta de áudio, abrindo no player padrão do sistema) → selecionar →
+> importar para o Project Panel **ou** inserir direto na timeline, na posição do playhead e
+> sempre na última trilha de vídeo/áudio vazia → Refresh detecta arquivos novos.
 
 O que **não** está implementado ainda (de propósito — ver "Próximos passos"): busca,
 escolha de track na inserção, drag & drop, tags, múltiplas bibliotecas, suporte dedicado a
@@ -39,7 +39,9 @@ macOS, apontando para onde quer que sua pasta de assets esteja.
 Pesquisa feita diretamente na documentação oficial da Adobe (`AdobeDocs/uxp-premiere-pro` e
 `AdobeDocs/uxp-premiere-pro-samples`) antes de escrever qualquer código:
 
-- CEP está sendo descontinuado; ExtendScript segue funcionando apenas até setembro de 2026.
+- CEP está sendo descontinuado pela Adobe em favor do UXP (a data exata em que o suporte a
+  CEP/ExtendScript será removido do Premiere não está confirmada nos documentos oficiais
+  consultados neste projeto - não deve ser tratada como definitiva).
 - UXP é a plataforma de extensibilidade atual e oficialmente recomendada pela Adobe para
   plugins novos, com engine JavaScript unificada (sem a ponte `CSInterface` do CEP).
 - APIs usadas neste plugin, todas confirmadas na referência oficial:
@@ -58,11 +60,15 @@ Pesquisa feita diretamente na documentação oficial da Adobe (`AdobeDocs/uxp-pr
     não ao disco inteiro). O `Entry.url` desses arquivos é usado diretamente em `<img>` e
     `<video>` para o preview - o painel roda num webview comum, então não foi necessária
     nenhuma API de geração de thumbnail.
-  - `HTMLVideoElement` (`<video>`) reaproveitado como player de áudio escondido para a
-    pré-escuta - o UXP **não** expõe `<audio>` nem a Web Audio API (`AudioContext`); a lista
-    oficial de elementos HTML suportados (`uxp-api/reference-js/global-members/html-
-    elements/index.md`) só documenta `HTMLVideoElement` como elemento de mídia. Confirmado na
-    prática: `new AudioContext()` lança `TypeError: AudioContextClass is not a constructor`.
+  - `require("uxp").shell.openPath()` para a pré-escuta de áudio - abre o arquivo no player
+    padrão do sistema operacional. É a alternativa real e documentada: o UXP **não** expõe
+    `<audio>` nem a Web Audio API (`AudioContext`) (confirmado na prática:
+    `new AudioContext()` lança `TypeError: AudioContextClass is not a constructor`), e mesmo
+    o `<video>` (único elemento de mídia documentado) aceita `play()` sem erro mas nunca
+    decodifica o áudio de fato nesse ambiente (testado exaustivamente: visível/escondido,
+    com/sem tamanho real, carregamento adiantado/sob demanda - sempre sem o evento `play`,
+    sem `error`, com `currentTime` travado em `0`). Exige a permissão `launchProcess` no
+    `manifest.json` e mostra um diálogo de consentimento do usuário na primeira vez.
   - `path` (módulo global do UXP) para manipulação de nomes/extensões.
 
 ### Limitações conhecidas (documentadas pela Adobe, não contornadas às escondidas)
@@ -72,12 +78,14 @@ Pesquisa feita diretamente na documentação oficial da Adobe (`AdobeDocs/uxp-pr
   janela (mesmo padrão usado nos samples oficiais da Adobe), e não nesses hooks.
 - Não há, na referência pesquisada, uma API de geração de thumbnail/frame-grab dedicada -
   imagens e vídeos usam o `Entry.url` real do arquivo (primeiro frame do vídeo, no caso).
-- **O UXP não implementa `<audio>` nem a Web Audio API** (`AudioContext`) - só
-  `HTMLVideoElement` está documentado como elemento de mídia. Por isso a pré-escuta de áudio
-  usa um `<video>` escondido (toca arquivos só-de-áudio normalmente) e a "forma de onda" do
-  card é um padrão visual decorativo gerado deterministicamente a partir do nome do arquivo
-  (mesmo arquivo sempre desenha o mesmo padrão) - **não é uma análise real do áudio**, já que
-  isso exigiria decodificar PCM, algo que não há como fazer sem Web Audio API nesse ambiente.
+- **O UXP não permite tocar áudio dentro do painel** - não há `<audio>` nem Web Audio API, e
+  o `<video>` (único elemento de mídia documentado) não decodifica áudio de fato mesmo
+  aceitando `play()` sem erro. A pré-escuta usa `shell.openPath()` para abrir o arquivo no
+  player padrão do sistema (fora do painel, com um diálogo de consentimento na primeira
+  vez), e a "forma de onda" do card é um padrão visual decorativo gerado
+  deterministicamente a partir do nome do arquivo (mesmo arquivo sempre desenha o mesmo
+  padrão) - **não é uma análise real do áudio**, já que isso exigiria decodificar PCM, algo
+  que não há como fazer sem Web Audio API nesse ambiente.
 - O token persistente que lembra a pasta escolhida não é garantido para sempre — a própria
   documentação da Adobe avisa que mover/apagar a pasta, ou o SO revogar a permissão, pode
   invalidá-lo. Quando isso acontece, o plugin detecta o erro e volta a pedir para o usuário
@@ -199,7 +207,9 @@ Se você alterar `manifest.json`, é necessário **Unload** e **Load & Watch** n
 4. Veja as categorias detectadas automaticamente a partir das subpastas.
 5. Clique em `Transitions` (ou outra categoria com arquivos).
 6. Veja os arquivos listados na grade.
-7. Clique em um asset para selecioná-lo (ou dê duplo clique para importar direto).
+7. Clique em um asset para selecioná-lo (ou dê duplo clique para importar direto). Em um
+   arquivo de áudio, o clique também pede pra abrir o arquivo no player padrão do sistema
+   (primeira vez mostra um diálogo de consentimento do SO/UXP).
 8. Clique em **Importar** (leva para o Project Panel) ou **Inserir na Timeline** (importa se
    necessário e insere na sequência ativa, na posição do playhead, na última trilha de vídeo
    e de áudio que estiverem vazias).
