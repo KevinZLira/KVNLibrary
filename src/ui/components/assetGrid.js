@@ -81,6 +81,7 @@ function createAudioThumb(asset) {
   player.src = asset.url;
   player.preload = "metadata";
   player.volume = 1;
+  player.muted = false;
   wrapper.appendChild(player);
 
   let progressRafId = null;
@@ -100,6 +101,7 @@ function createAudioThumb(asset) {
   }
 
   player.addEventListener("play", () => {
+    console.log(`[KVN] "${asset.name}" evento play disparado`);
     isPlaying = true;
     playIcon.textContent = "❚❚";
     if (!progressRafId) {
@@ -126,14 +128,20 @@ function createAudioThumb(asset) {
   // ver comentário em renderAssets sobre por que isso é ligado lá fora.
   wrapper.togglePlayback = () => {
     console.log(
-      `[KVN] togglePlayback("${asset.name}") - isPlaying=${isPlaying} player.paused=${player.paused} duration=${player.duration}`
+      `[KVN] togglePlayback("${asset.name}") - isPlaying=${isPlaying} player.paused=${player.paused} duration=${player.duration} muted=${player.muted} volume=${player.volume}`
     );
     if (!isPlaying) {
       const playResult = player.play();
       if (playResult && typeof playResult.then === "function") {
-        playResult.catch((error) => {
-          console.error(`[KVN] "${asset.name}" play() rejeitou:`, error);
-        });
+        playResult
+          .then(() => {
+            console.log(
+              `[KVN] "${asset.name}" play() resolveu - muted=${player.muted} volume=${player.volume} currentTime=${player.currentTime}`
+            );
+          })
+          .catch((error) => {
+            console.error(`[KVN] "${asset.name}" play() rejeitou:`, error);
+          });
       }
     } else {
       player.pause();
