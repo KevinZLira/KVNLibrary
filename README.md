@@ -12,7 +12,7 @@ própria, pensada para uma biblioteca pessoal guardada em disco.
 O fluxo abaixo já funciona de ponta a ponta:
 
 > Abrir painel → ver categorias → entrar em uma categoria → ver assets com preview real
-> (incluindo forma de onda com play/pause para áudio) → selecionar → importar para o Project
+> (incluindo pré-escuta com play/pause para áudio) → selecionar → importar para o Project
 > Panel **ou** inserir direto na timeline, na posição do playhead e sempre na última trilha
 > de vídeo/áudio vazia → Refresh detecta arquivos novos.
 
@@ -55,12 +55,14 @@ Pesquisa feita diretamente na documentação oficial da Adobe (`AdobeDocs/uxp-pr
     subpastas/arquivos, e `createPersistentToken()` / `getEntryForPersistentToken()` para
     lembrar da pasta escolhida entre sessões, com a permissão `"localFileSystem": "request"`
     declarada no `manifest.json` (o usuário concede acesso apenas à pasta que ele escolher,
-    não ao disco inteiro). O `Entry.url` desses arquivos é usado diretamente em `<img>`,
-    `<video>` e `<audio>` para o preview - o painel roda num webview comum, então não foi
-    necessária nenhuma API de geração de thumbnail.
-  - `AudioContext.decodeAudioData()` (Web Audio API padrão do Chromium embutido no UXP,
-    não é uma API do Premiere) para desenhar a forma de onda do áudio a partir dos bytes
-    do próprio `Entry.url`.
+    não ao disco inteiro). O `Entry.url` desses arquivos é usado diretamente em `<img>` e
+    `<video>` para o preview - o painel roda num webview comum, então não foi necessária
+    nenhuma API de geração de thumbnail.
+  - `HTMLVideoElement` (`<video>`) reaproveitado como player de áudio escondido para a
+    pré-escuta - o UXP **não** expõe `<audio>` nem a Web Audio API (`AudioContext`); a lista
+    oficial de elementos HTML suportados (`uxp-api/reference-js/global-members/html-
+    elements/index.md`) só documenta `HTMLVideoElement` como elemento de mídia. Confirmado na
+    prática: `new AudioContext()` lança `TypeError: AudioContextClass is not a constructor`.
   - `path` (módulo global do UXP) para manipulação de nomes/extensões.
 
 ### Limitações conhecidas (documentadas pela Adobe, não contornadas às escondidas)
@@ -69,11 +71,13 @@ Pesquisa feita diretamente na documentação oficial da Adobe (`AdobeDocs/uxp-pr
   Premiere atualmente. Por isso a inicialização do painel acontece no evento `load` da
   janela (mesmo padrão usado nos samples oficiais da Adobe), e não nesses hooks.
 - Não há, na referência pesquisada, uma API de geração de thumbnail/frame-grab dedicada -
-  imagens e vídeos usam o `Entry.url` real do arquivo (primeiro frame do vídeo, no caso);
-  áudio ganha uma forma de onda real, desenhada no cliente a partir do próprio arquivo via
-  Web Audio API (`AudioContext.decodeAudioData`), com play/pause e barra de progresso. Se o
-  codec do arquivo não for suportado pela Web Audio API, a forma de onda simplesmente não
-  aparece (fica uma linha reta) mas o play/pause continua funcionando normalmente.
+  imagens e vídeos usam o `Entry.url` real do arquivo (primeiro frame do vídeo, no caso).
+- **O UXP não implementa `<audio>` nem a Web Audio API** (`AudioContext`) - só
+  `HTMLVideoElement` está documentado como elemento de mídia. Por isso a pré-escuta de áudio
+  usa um `<video>` escondido (toca arquivos só-de-áudio normalmente) e a "forma de onda" do
+  card é um padrão visual decorativo gerado deterministicamente a partir do nome do arquivo
+  (mesmo arquivo sempre desenha o mesmo padrão) - **não é uma análise real do áudio**, já que
+  isso exigiria decodificar PCM, algo que não há como fazer sem Web Audio API nesse ambiente.
 - O token persistente que lembra a pasta escolhida não é garantido para sempre — a própria
   documentação da Adobe avisa que mover/apagar a pasta, ou o SO revogar a permissão, pode
   invalidá-lo. Quando isso acontece, o plugin detecta o erro e volta a pedir para o usuário

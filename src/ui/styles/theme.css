@@ -321,6 +321,17 @@ body {
   pointer-events: none;
 }
 
+.kvn-audio-player {
+  /* Escondido sem "display: none" - alguns motores de mídia suspendem a
+     decodificação de elementos com display none, o que impediria o áudio
+     de tocar mesmo com play() chamado. */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .kvn-asset-name {
   font-size: 10.5px;
   word-break: break-word;

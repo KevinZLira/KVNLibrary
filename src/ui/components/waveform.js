@@ -1,67 +1,55 @@
 /**
- * Gera a forma de onda e toca a pré-escuta de um arquivo de áudio usando a
- * Web Audio API do próprio Chromium embutido no UXP - não existe API
- * dedicada de waveform no Premiere, então isso é puramente client-side, a
- * partir dos bytes do arquivo (via fetch do Entry.url).
+ * Desenha um padrão visual para o card de áudio, no estilo "forma de onda"
+ * do Mister Horse.
  *
- * A reprodução usa AudioBufferSourceNode (não a tag <audio>) porque o
- * decode via fetch()+decodeAudioData() é o caminho comprovadamente
- * confiável nesse webview (é o mesmo usado pra desenhar a forma de onda);
- * a tag <audio> com o Entry.url como src não tocava nesse ambiente.
+ * IMPORTANTE: não é uma análise real do áudio do arquivo. Pesquisa na
+ * referência oficial do UXP (uxp-api/reference-js/global-members/html-
+ * elements/index.md) mostra que o único elemento de mídia documentado é
+ * HTMLVideoElement - não existe HTMLAudioElement nem a Web Audio API
+ * (AudioContext), então não há como decodificar PCM real nesse ambiente
+ * sem um decoder próprio (fora de escopo). O padrão abaixo é gerado
+ * deterministicamente a partir do nome do arquivo (mesmo arquivo sempre
+ * desenha o mesmo desenho), só como identidade visual do card.
  */
 
-let sharedAudioContext = null;
-
-function getAudioContext() {
-  if (!sharedAudioContext) {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    sharedAudioContext = new AudioContextClass();
+function hashString(value) {
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 31 + value.charCodeAt(i)) | 0;
   }
-  return sharedAudioContext;
+  return hash >>> 0;
 }
 
-async function decodeAudioFromUrl(url) {
-  const response = await fetch(url);
-  const arrayBuffer = await response.arrayBuffer();
-  return getAudioContext().decodeAudioData(arrayBuffer);
-}
-
-function drawPlaceholderLine(canvas) {
-  const ctx = canvas.getContext("2d");
-  const { width, height } = canvas;
-  ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "rgba(224, 224, 224, 0.2)";
-  ctx.fillRect(0, height / 2 - 1, width, 2);
-}
-
-function drawWaveform(canvas, audioBuffer) {
+function drawGeneratedWaveform(canvas, seed) {
   const ctx = canvas.getContext("2d");
   const { width, height } = canvas;
   ctx.clearRect(0, 0, width, height);
 
-  const channelData = audioBuffer.getChannelData(0);
-  const samplesPerPixel = Math.max(1, Math.floor(channelData.length / width));
+  let state = hashString(seed) || 1;
+  const nextRandom = () => {
+    // xorshift32 - só para gerar um padrão determinístico, não é aleatório
+    // "de verdade" nem precisa ser: o objetivo é só reproduzir sempre o
+    // mesmo desenho para o mesmo nome de arquivo.
+    state ^= state << 13;
+    state ^= state >>> 17;
+    state ^= state << 5;
+    state >>>= 0;
+    return state / 0xffffffff;
+  };
+
+  const barCount = 40;
+  const barWidth = width / barCount;
   const mid = height / 2;
 
   ctx.fillStyle = "#5c9dff";
-  for (let x = 0; x < width; x++) {
-    const start = x * samplesPerPixel;
-    let min = 0;
-    let max = 0;
-    for (let i = 0; i < samplesPerPixel; i++) {
-      const sample = channelData[start + i] || 0;
-      if (sample < min) min = sample;
-      if (sample > max) max = sample;
-    }
-    const y = mid + min * mid;
-    const barHeight = Math.max(1, (max - min) * mid);
-    ctx.fillRect(x, y, 1, barHeight);
+  for (let i = 0; i < barCount; i++) {
+    const amplitude = 0.15 + nextRandom() * 0.85;
+    const barHeight = Math.max(2, amplitude * height * 0.9);
+    const x = i * barWidth;
+    ctx.fillRect(x, mid - barHeight / 2, Math.max(1, barWidth - 1), barHeight);
   }
 }
 
 module.exports = {
-  getAudioContext,
-  decodeAudioFromUrl,
-  drawPlaceholderLine,
-  drawWaveform,
+  drawGeneratedWaveform,
 };

@@ -3,11 +3,10 @@
  * recebe dados prontos e callbacks de seleção/duplo clique.
  *
  * Preview real: usa Entry.url (concedido via seletor de pastas) diretamente
- * em <img>/<video>, já que o painel roda num webview Chromium comum e não
- * existe (nem foi encontrada na pesquisa) uma API dedicada de geração de
- * thumbnail no Premiere. Áudio ganha uma forma de onda real (Web Audio API,
- * ver waveform.js) com play/pause e barra de progresso para pré-ouvir o som
- * sem precisar importar primeiro.
+ * em <img>/<video>. Áudio toca via um <video> escondido (ver comentário em
+ * createAudioThumb) com play/pause e barra de progresso, e ganha um padrão
+ * visual decorativo (ver waveform.js) - não é uma forma de onda real, já
+ * que o UXP não expõe Web Audio API nem <audio> pra decodificar o áudio.
  */
 
 const waveform = require("./waveform");
@@ -61,7 +60,7 @@ function createAudioThumb(asset) {
   canvas.width = 240;
   canvas.height = 68;
   wrapper.appendChild(canvas);
-  waveform.drawPlaceholderLine(canvas);
+  waveform.drawGeneratedWaveform(canvas, asset.name);
 
   const playIcon = document.createElement("div");
   playIcon.className = "kvn-audio-thumb-play";
@@ -72,113 +71,51 @@ function createAudioThumb(asset) {
   progress.className = "kvn-audio-thumb-progress";
   wrapper.appendChild(progress);
 
-  let audioBuffer = null;
-  let sourceNode = null;
-  let startedAtContextTime = 0;
-  let pausedAtOffset = 0;
-  let isPlaying = false;
+  // O UXP não documenta <audio> nem a Web Audio API na sua lista de
+  // globais (só HTMLVideoElement) - reaproveita o <video>, que já
+  // funciona para os thumbs de vídeo, como player de áudio escondido.
+  const player = document.createElement("video");
+  player.className = "kvn-audio-player";
+  player.src = asset.url;
+  player.preload = "none";
+  wrapper.appendChild(player);
+
   let progressRafId = null;
 
-  waveform
-    .decodeAudioFromUrl(asset.url)
-    .then((buffer) => {
-      audioBuffer = buffer;
-      waveform.drawWaveform(canvas, audioBuffer);
-    })
-    .catch((error) => {
-      // Sem preview pra esse arquivo (ex.: codec não suportado pela Web
-      // Audio API) - fica só a linha reta e o play não faz nada.
-      console.error(`[KVN] Não foi possível decodificar "${asset.name}" para pré-escuta:`, error);
-    });
-
-  function stopSourceNode() {
-    if (sourceNode) {
-      sourceNode.onended = null;
-      try {
-        sourceNode.stop();
-      } catch (error) {
-        // Já parado - ignora.
-      }
-      sourceNode = null;
-    }
-  }
-
   function updateProgressLoop() {
-    if (!isPlaying || !audioBuffer) {
+    if (player.paused || !player.duration) {
+      progressRafId = null;
       return;
     }
-    const elapsed =
-      waveform.getAudioContext().currentTime - startedAtContextTime + pausedAtOffset;
-    const ratio = Math.min(1, elapsed / audioBuffer.duration);
-    progress.style.width = `${ratio * 100}%`;
-    if (elapsed >= audioBuffer.duration) {
-      stopPlayback(true);
-      return;
-    }
+    progress.style.width = `${(player.currentTime / player.duration) * 100}%`;
     progressRafId = requestAnimationFrame(updateProgressLoop);
   }
 
-  async function startPlayback() {
-    const context = waveform.getAudioContext();
-    // DIAGNÓSTICO TEMPORÁRIO - alguns webviews Chromium criam o
-    // AudioContext em estado "suspended" até um resume() disparado por
-    // gesto do usuário (isto é um clique, então deveria bastar). Abra o
-    // console do UDT e cole a saída dessas linhas se o som ainda não tocar.
-    console.log(`[KVN] AudioContext.state antes do resume: ${context.state}`);
-    if (context.state !== "running") {
-      try {
-        await context.resume();
-      } catch (error) {
-        console.error("[KVN] context.resume() falhou:", error);
-      }
-    }
-    console.log(`[KVN] AudioContext.state depois do resume: ${context.state}`);
-
-    try {
-      sourceNode = context.createBufferSource();
-      sourceNode.buffer = audioBuffer;
-      sourceNode.connect(context.destination);
-      sourceNode.onended = () => {
-        if (isPlaying) {
-          stopPlayback(true);
-        }
-      };
-      startedAtContextTime = context.currentTime;
-      sourceNode.start(0, pausedAtOffset);
-      isPlaying = true;
-      playIcon.textContent = "❚❚";
+  player.addEventListener("play", () => {
+    playIcon.textContent = "❚❚";
+    if (!progressRafId) {
       progressRafId = requestAnimationFrame(updateProgressLoop);
-      console.log("[KVN] sourceNode.start() chamado sem erro.");
-    } catch (error) {
-      console.error("[KVN] Falha ao iniciar playback do áudio:", error);
     }
-  }
-
-  function stopPlayback(reachedEnd) {
-    isPlaying = false;
+  });
+  player.addEventListener("pause", () => {
     playIcon.textContent = "▶";
-    if (progressRafId) {
-      cancelAnimationFrame(progressRafId);
-      progressRafId = null;
-    }
-    if (reachedEnd) {
-      pausedAtOffset = 0;
-      progress.style.width = "0%";
-    } else {
-      pausedAtOffset += waveform.getAudioContext().currentTime - startedAtContextTime;
-    }
-    stopSourceNode();
-  }
+  });
+  player.addEventListener("ended", () => {
+    playIcon.textContent = "▶";
+    progress.style.width = "0%";
+  });
+  player.addEventListener("error", () => {
+    console.error(`[KVN] Não foi possível carregar "${asset.name}" para pré-escuta.`);
+  });
 
   wrapper.addEventListener("click", (event) => {
     event.stopPropagation();
-    if (!audioBuffer) {
-      return;
-    }
-    if (isPlaying) {
-      stopPlayback(false);
+    if (player.paused) {
+      player.play().catch((error) => {
+        console.error(`[KVN] Falha ao tocar "${asset.name}":`, error);
+      });
     } else {
-      startPlayback();
+      player.pause();
     }
   });
 
