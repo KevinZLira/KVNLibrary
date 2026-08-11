@@ -322,17 +322,15 @@ body {
 }
 
 .kvn-audio-player {
-  /* TESTE TEMPORÁRIO DE DIAGNÓSTICO - opacity:1 de propósito (visível),
-     pra isolar se currentTime travado em 0 é por causa de visibilidade
-     ou de outra coisa (ex.: reprodução com áudio ligado sendo bloqueada
-     mesmo com gesto do usuário). Depois de descobrir, volta a esconder. */
+  /* Escondido - confirmado por teste que visibilidade não influencia se
+     o áudio toca ou não nesse ambiente (ver limitação documentada no
+     README), então não há motivo pra deixar visível. */
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  opacity: 1;
-  z-index: 5;
+  opacity: 0;
   pointer-events: none;
 }
 

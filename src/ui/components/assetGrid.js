@@ -74,16 +74,19 @@ function createAudioThumb(asset) {
   // O UXP não documenta <audio> nem a Web Audio API na sua lista de
   // globais (só HTMLVideoElement) - reaproveita o <video>, que já
   // funciona para os thumbs de vídeo, como player de áudio escondido.
-  // preload="metadata" (igual aos thumbs de vídeo, que funcionam) em vez
-  // de "none", que pode nunca carregar de fato até o play() ser chamado.
+  // O src só é atribuído no primeiro clique (ver togglePlayback), não na
+  // criação do card: uma pasta com muitos áudios cria um <video> por
+  // arquivo de uma vez, e todos com preload disparando o carregamento em
+  // paralelo pode estar saturando o player de mídia do UXP e impedindo a
+  // reprodução real de tocar.
   const player = document.createElement("video");
   player.className = "kvn-audio-player";
-  player.src = asset.url;
-  player.preload = "metadata";
+  player.preload = "none";
   player.volume = 1;
   player.muted = false;
   wrapper.appendChild(player);
 
+  let srcAssigned = false;
   let progressRafId = null;
   // Controla o estado tocando/pausado por conta própria, em vez de ler
   // player.paused - no UXP essa propriedade não parte de "true" como num
@@ -127,6 +130,11 @@ function createAudioThumb(asset) {
   // O card inteiro toca/pausa (não só a tira de 34px da forma de onda) -
   // ver comentário em renderAssets sobre por que isso é ligado lá fora.
   wrapper.togglePlayback = () => {
+    if (!srcAssigned) {
+      player.src = asset.url;
+      player.load();
+      srcAssigned = true;
+    }
     console.log(
       `[KVN] togglePlayback("${asset.name}") - isPlaying=${isPlaying} player.paused=${player.paused} duration=${player.duration} muted=${player.muted} volume=${player.volume}`
     );
