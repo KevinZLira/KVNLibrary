@@ -11,7 +11,7 @@
   "requiredPermissions": {
     "localFileSystem": "request",
     "launchProcess": {
-      "extensions": [".wav", ".mp3", ".aac", ".m4a", ".aif", ".aiff"]
+      "extensions": ["wav", "mp3", "aac", "m4a", "aif", "aiff", ".wav", ".mp3", ".aac", ".m4a", ".aif", ".aiff"]
     }
   },
   "entrypoints": [
