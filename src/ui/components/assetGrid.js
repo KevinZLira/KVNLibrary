@@ -1,17 +1,14 @@
 /**
  * Renderiza a grade de assets de uma categoria. Puramente apresentacional:
- * recebe dados prontos e callbacks de seleção/duplo clique.
+ * recebe dados prontos e callbacks de seleção/duplo clique/pré-escuta - a
+ * chamada real de API do Premiere fica em src/premiere/previewManager.js.
  *
  * Preview real: usa Entry.url (concedido via seletor de pastas) diretamente
  * em <img>/<video>. Áudio ganha um padrão visual decorativo (ver
  * waveform.js - não é uma forma de onda real, o UXP não expõe Web Audio
- * API nem <audio>) e pré-escuta via shell.openPath() abrindo o arquivo no
- * player padrão do sistema operacional - testamos exaustivamente tocar
- * áudio dentro do painel (via <video> escondido) e o play() é aceito mas
- * nunca decodifica de fato nesse ambiente, então esse é o caminho real.
+ * API nem <audio>) e a pré-escuta é disparada no clique (via onPreviewAsset).
  */
 
-const { shell } = require("uxp");
 const waveform = require("./waveform");
 
 const KIND_LABEL = {
@@ -54,10 +51,10 @@ function createVideoThumb(asset) {
   return video;
 }
 
-function createAudioThumb(asset, onPreviewError) {
+function createAudioThumb(asset) {
   const wrapper = document.createElement("div");
   wrapper.className = "kvn-asset-thumb kvn-audio-thumb";
-  wrapper.title = "Pré-escutar no player padrão do sistema";
+  wrapper.title = "Pré-escutar no Source Monitor do Premiere";
 
   const canvas = document.createElement("canvas");
   canvas.className = "kvn-audio-waveform";
@@ -71,32 +68,10 @@ function createAudioThumb(asset, onPreviewError) {
   playIcon.textContent = "▶";
   wrapper.appendChild(playIcon);
 
-  // Pré-escuta via shell.openPath() (exige a permissão "launchProcess" no
-  // manifest.json) - abre o arquivo no player padrão do sistema
-  // operacional. Não é embutido no painel: o UXP não expõe <audio> nem
-  // Web Audio API, e o <video> aceita play() mas nunca decodifica de fato
-  // (testado exaustivamente). shell.openPath() mostra um diálogo de
-  // consentimento do usuário na primeira vez.
-  wrapper.togglePlayback = () => {
-    shell
-      .openPath(asset.path, `Pré-escutar "${asset.name}" antes de importar`)
-      .then((result) => {
-        if (result && onPreviewError) {
-          onPreviewError(`Não foi possível abrir "${asset.name}" para pré-escuta: ${result}`);
-        }
-      })
-      .catch((error) => {
-        if (onPreviewError) {
-          const message = error && error.message ? error.message : String(error);
-          onPreviewError(`Não foi possível abrir "${asset.name}" para pré-escuta: ${message}`);
-        }
-      });
-  };
-
   return wrapper;
 }
 
-function createThumb(asset, onPreviewError) {
+function createThumb(asset) {
   if (asset.kind === "image" && asset.url) {
     return createImageThumb(asset);
   }
@@ -104,12 +79,12 @@ function createThumb(asset, onPreviewError) {
     return createVideoThumb(asset);
   }
   if (asset.kind === "audio") {
-    return createAudioThumb(asset, onPreviewError);
+    return createAudioThumb(asset);
   }
   return createBadgeThumb(asset);
 }
 
-function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImportAsset, onPreviewError) {
+function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImportAsset, onPreviewAsset) {
   container.innerHTML = "";
 
   if (assets.length === 0) {
@@ -127,7 +102,7 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
       card.classList.add("kvn-asset-selected");
     }
 
-    const thumb = createThumb(asset, onPreviewError);
+    const thumb = createThumb(asset);
 
     const name = document.createElement("div");
     name.className = "kvn-asset-name";
@@ -141,13 +116,13 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
     card.appendChild(name);
     card.appendChild(ext);
 
-    // Para áudio, clicar em qualquer lugar do card pré-escuta - não só na
-    // tira da forma de onda (o usuário clica onde for mais natural, ex.:
-    // em cima do nome do arquivo, e isso precisa funcionar também).
+    // Para áudio, clicar em qualquer lugar do card pré-escuta no Source
+    // Monitor do Premiere - não só na tira da forma de onda (o usuário
+    // clica onde for mais natural, ex.: em cima do nome do arquivo).
     card.addEventListener("click", () => {
       onSelectAsset(asset);
-      if (typeof thumb.togglePlayback === "function") {
-        thumb.togglePlayback();
+      if (asset.kind === "audio" && onPreviewAsset) {
+        onPreviewAsset(asset);
       }
     });
     card.addEventListener("dblclick", () => onImportAsset(asset));

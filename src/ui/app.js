@@ -14,6 +14,7 @@
 const libraryManager = require("../library/libraryManager");
 const importManager = require("../premiere/importManager");
 const timelineManager = require("../premiere/timelineManager");
+const previewManager = require("../premiere/previewManager");
 const projectManager = require("../premiere/projectManager");
 const { PLUGIN_NAME } = require("../config/settings");
 const { renderCategories } = require("./components/categoryList");
@@ -153,7 +154,7 @@ async function loadAndRenderFolderContents(folder) {
         selectedAsset && selectedAsset.path,
         handleSelectAsset,
         handleImportAsset,
-        handlePreviewError
+        handlePreviewAsset
       );
     }
     return true;
@@ -182,13 +183,17 @@ function handleSelectAsset(asset) {
       selectedAsset.path,
       handleSelectAsset,
       handleImportAsset,
-      handlePreviewError
+      handlePreviewAsset
     );
   });
 }
 
-function handlePreviewError(message) {
-  showStatus(elements.statusBar, message, "error");
+async function handlePreviewAsset(asset) {
+  try {
+    await previewManager.previewAsset(asset);
+  } catch (error) {
+    showStatus(elements.statusBar, error.message, "error");
+  }
 }
 
 async function handleImportAsset(asset) {
