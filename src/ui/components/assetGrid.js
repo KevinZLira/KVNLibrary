@@ -107,14 +107,6 @@ function createAudioThumb(asset) {
     playIcon.textContent = "▶";
     progress.style.width = "0%";
   });
-  // DIAGNÓSTICO TEMPORÁRIO - o som ainda não tocou mesmo sem erro
-  // aparente. Estas linhas mostram o ciclo de vida real do <video> usado
-  // como player. Abra o console do UDT e cole a saída ao clicar num card.
-  player.addEventListener("loadedmetadata", () => {
-    console.log(
-      `[KVN] "${asset.name}" loadedmetadata - duration=${player.duration} readyState=${player.readyState}`
-    );
-  });
   player.addEventListener("error", () => {
     const mediaError = player.error;
     console.error(
@@ -122,24 +114,17 @@ function createAudioThumb(asset) {
     );
   });
 
-  wrapper.addEventListener("click", (event) => {
-    event.stopPropagation();
-    console.log(
-      `[KVN] clique em "${asset.name}" - paused=${player.paused} readyState=${player.readyState} volume=${player.volume} muted=${player.muted}`
-    );
+  // O card inteiro toca/pausa (não só a tira de 34px da forma de onda) -
+  // ver comentário em renderAssets sobre por que isso é ligado lá fora.
+  wrapper.togglePlayback = () => {
     if (player.paused) {
-      player
-        .play()
-        .then(() => {
-          console.log(`[KVN] "${asset.name}" play() resolveu - paused=${player.paused}`);
-        })
-        .catch((error) => {
-          console.error(`[KVN] "${asset.name}" play() rejeitou:`, error);
-        });
+      player.play().catch((error) => {
+        console.error(`[KVN] Falha ao tocar "${asset.name}":`, error);
+      });
     } else {
       player.pause();
     }
-  });
+  };
 
   return wrapper;
 }
@@ -189,7 +174,15 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
     card.appendChild(name);
     card.appendChild(ext);
 
-    card.addEventListener("click", () => onSelectAsset(asset));
+    // Para áudio, clicar em qualquer lugar do card toca/pausa - não só na
+    // tira da forma de onda (o usuário clica onde for mais natural, ex.:
+    // em cima do nome do arquivo, e isso precisa funcionar também).
+    card.addEventListener("click", () => {
+      onSelectAsset(asset);
+      if (typeof thumb.togglePlayback === "function") {
+        thumb.togglePlayback();
+      }
+    });
     card.addEventListener("dblclick", () => onImportAsset(asset));
 
     container.appendChild(card);
