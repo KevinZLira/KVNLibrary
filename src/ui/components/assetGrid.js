@@ -84,9 +84,14 @@ function createAudioThumb(asset) {
   wrapper.appendChild(player);
 
   let progressRafId = null;
+  // Controla o estado tocando/pausado por conta própria, em vez de ler
+  // player.paused - no UXP essa propriedade não parte de "true" como num
+  // browser normal (confirmado: no primeiro clique já veio paused=false),
+  // então não dá pra confiar nela pra decidir a direção do toggle.
+  let isPlaying = false;
 
   function updateProgressLoop() {
-    if (player.paused || !player.duration) {
+    if (!isPlaying || !player.duration) {
       progressRafId = null;
       return;
     }
@@ -95,15 +100,18 @@ function createAudioThumb(asset) {
   }
 
   player.addEventListener("play", () => {
+    isPlaying = true;
     playIcon.textContent = "❚❚";
     if (!progressRafId) {
       progressRafId = requestAnimationFrame(updateProgressLoop);
     }
   });
   player.addEventListener("pause", () => {
+    isPlaying = false;
     playIcon.textContent = "▶";
   });
   player.addEventListener("ended", () => {
+    isPlaying = false;
     playIcon.textContent = "▶";
     progress.style.width = "0%";
   });
@@ -116,27 +124,19 @@ function createAudioThumb(asset) {
 
   // O card inteiro toca/pausa (não só a tira de 34px da forma de onda) -
   // ver comentário em renderAssets sobre por que isso é ligado lá fora.
-  // DIAGNÓSTICO TEMPORÁRIO em cada etapa - abra o console do UDT e cole
-  // tudo que aparecer depois de clicar num card de áudio.
   wrapper.togglePlayback = () => {
     console.log(
-      `[KVN] togglePlayback("${asset.name}") - paused=${player.paused} readyState=${player.readyState} networkState=${player.networkState} src="${player.currentSrc}"`
+      `[KVN] togglePlayback("${asset.name}") - isPlaying=${isPlaying} player.paused=${player.paused} duration=${player.duration}`
     );
-    if (player.paused) {
+    if (!isPlaying) {
       const playResult = player.play();
-      console.log(`[KVN] play() retornou:`, playResult);
       if (playResult && typeof playResult.then === "function") {
-        playResult
-          .then(() => {
-            console.log(`[KVN] "${asset.name}" play() resolveu - paused agora=${player.paused}`);
-          })
-          .catch((error) => {
-            console.error(`[KVN] "${asset.name}" play() rejeitou:`, error);
-          });
+        playResult.catch((error) => {
+          console.error(`[KVN] "${asset.name}" play() rejeitou:`, error);
+        });
       }
     } else {
       player.pause();
-      console.log(`[KVN] "${asset.name}" pause() chamado`);
     }
   };
 
