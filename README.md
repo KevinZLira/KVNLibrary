@@ -243,6 +243,13 @@ O painel mostra mensagens específicas (não falha silenciosamente) para:
 - Os arquivos de uma categoria só são lidos quando o usuário entra nela (sob demanda).
 - Um cache em memória evita reler o disco ao reabrir uma categoria já visitada; o cache só é
   invalidado no clique em **Refresh Library**.
+- Numa categoria com muitos arquivos, os cards são todos criados, mas o `<img>`/`<video>` de
+  cada thumbnail só carrega de fato (via `IntersectionObserver`) quando o card entra ou está
+  perto de entrar na área visível da grade — carregar centenas de arquivos de mídia ao mesmo
+  tempo travava (e já chegou a travar de vez) o painel em pastas grandes.
+- Selecionar um asset não recria a grade inteira - só troca a classe CSS do card selecionado
+  (`updateSelection()`), já que recriar todos os cards a cada clique refazia também o
+  carregamento de toda mídia já carregada.
 
 ## Próximos passos (fora do escopo deste MVP)
 

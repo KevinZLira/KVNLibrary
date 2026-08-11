@@ -18,7 +18,7 @@ const previewManager = require("../premiere/previewManager");
 const projectManager = require("../premiere/projectManager");
 const { PLUGIN_NAME } = require("../config/settings");
 const { renderCategories } = require("./components/categoryList");
-const { renderAssets } = require("./components/assetGrid");
+const { renderAssets, updateSelection } = require("./components/assetGrid");
 const { showStatus, clearStatus } = require("./components/statusBar");
 
 const elements = {};
@@ -170,22 +170,10 @@ function handleSelectAsset(asset) {
   elements.selectedAssetName.textContent = asset.name;
   elements.actionBar.classList.remove("kvn-hidden");
 
-  const currentFolder = getCurrentFolder();
-  if (!currentFolder) {
-    return;
-  }
-
-  // Re-render para refletir o card selecionado, usando o cache (sem custo de disco).
-  libraryManager.loadFolderContents(currentFolder).then(({ assets }) => {
-    renderAssets(
-      elements.assetsGrid,
-      assets,
-      selectedAsset.path,
-      handleSelectAsset,
-      handleImportAsset,
-      handlePreviewAsset
-    );
-  });
+  // Só atualiza o destaque do card - recriar a grade inteira a cada
+  // seleção (como antes) refazia o carregamento de todo <img>/<video> já
+  // carregado, o que travava pastas com muitos arquivos.
+  updateSelection(elements.assetsGrid, asset.path);
 }
 
 async function handlePreviewAsset(asset) {

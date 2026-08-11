@@ -7,9 +7,18 @@
  * em <img>/<video>. Áudio ganha um padrão visual decorativo (ver
  * waveform.js - não é uma forma de onda real, o UXP não expõe Web Audio
  * API nem <audio>) e a pré-escuta é disparada no clique (via onPreviewAsset).
+ *
+ * Carregamento sob demanda: numa pasta com muitos arquivos, criar todos os
+ * cards já disparando o carregamento de cada <img>/<video> ao mesmo tempo
+ * trava o painel (cada um decodifica de imediato). Por isso o src só é
+ * atribuído quando o card entra (ou está perto de entrar) na área visível,
+ * via IntersectionObserver - um observer novo por chamada de renderAssets,
+ * descartado junto com os cards antigos ao trocar de pasta.
  */
 
 const waveform = require("./waveform");
+
+const LAZY_ROOT_MARGIN = "300px";
 
 const KIND_LABEL = {
   video: "VID",
@@ -27,31 +36,36 @@ function createBadgeThumb(asset) {
   return thumb;
 }
 
-function createImageThumb(asset) {
+function createImageThumb(asset, observer) {
   const img = document.createElement("img");
   img.className = "kvn-asset-thumb kvn-asset-thumb-media";
-  img.src = asset.url;
-  img.loading = "lazy";
   img.alt = asset.name;
   img.addEventListener("error", () => {
     img.replaceWith(createBadgeThumb(asset));
   });
+  img.kvnLoad = () => {
+    img.src = asset.url;
+  };
+  observer.observe(img);
   return img;
 }
 
-function createVideoThumb(asset) {
+function createVideoThumb(asset, observer) {
   const video = document.createElement("video");
   video.className = "kvn-asset-thumb kvn-asset-thumb-media";
-  video.src = asset.url;
   video.muted = true;
-  video.preload = "metadata";
   video.addEventListener("error", () => {
     video.replaceWith(createBadgeThumb(asset));
   });
+  video.kvnLoad = () => {
+    video.preload = "metadata";
+    video.src = asset.url;
+  };
+  observer.observe(video);
   return video;
 }
 
-function createAudioThumb(asset) {
+function createAudioThumb(asset, observer) {
   const wrapper = document.createElement("div");
   wrapper.className = "kvn-asset-thumb kvn-audio-thumb";
   wrapper.title = "Pré-escutar no Source Monitor do Premiere";
@@ -61,25 +75,29 @@ function createAudioThumb(asset) {
   canvas.width = 240;
   canvas.height = 68;
   wrapper.appendChild(canvas);
-  waveform.drawGeneratedWaveform(canvas, asset.name);
 
   const playIcon = document.createElement("div");
   playIcon.className = "kvn-audio-thumb-play";
   playIcon.textContent = "▶";
   wrapper.appendChild(playIcon);
 
+  wrapper.kvnLoad = () => {
+    waveform.drawGeneratedWaveform(canvas, asset.name);
+  };
+  observer.observe(wrapper);
+
   return wrapper;
 }
 
-function createThumb(asset) {
+function createThumb(asset, observer) {
   if (asset.kind === "image" && asset.url) {
-    return createImageThumb(asset);
+    return createImageThumb(asset, observer);
   }
   if (asset.kind === "video" && asset.url) {
-    return createVideoThumb(asset);
+    return createVideoThumb(asset, observer);
   }
   if (asset.kind === "audio") {
-    return createAudioThumb(asset);
+    return createAudioThumb(asset, observer);
   }
   return createBadgeThumb(asset);
 }
@@ -95,14 +113,30 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
     return;
   }
 
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) {
+          continue;
+        }
+        if (typeof entry.target.kvnLoad === "function") {
+          entry.target.kvnLoad();
+        }
+        observer.unobserve(entry.target);
+      }
+    },
+    { rootMargin: LAZY_ROOT_MARGIN }
+  );
+
   for (const asset of assets) {
     const card = document.createElement("div");
     card.className = "kvn-asset-card";
+    card.dataset.assetPath = asset.path;
     if (asset.path === selectedAssetPath) {
       card.classList.add("kvn-asset-selected");
     }
 
-    const thumb = createThumb(asset);
+    const thumb = createThumb(asset, observer);
 
     const name = document.createElement("div");
     name.className = "kvn-asset-name";
@@ -131,6 +165,19 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
   }
 }
 
+/**
+ * Atualiza só o destaque visual do card selecionado, sem recriar a grade -
+ * chamado a cada seleção de asset, que é bem mais frequente que uma
+ * navegação de pasta de verdade.
+ */
+function updateSelection(container, selectedAssetPath) {
+  const cards = container.querySelectorAll(".kvn-asset-card");
+  cards.forEach((card) => {
+    card.classList.toggle("kvn-asset-selected", card.dataset.assetPath === selectedAssetPath);
+  });
+}
+
 module.exports = {
   renderAssets,
+  updateSelection,
 };
