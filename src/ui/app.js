@@ -5,10 +5,10 @@
  * hooks de ciclo de vida hide()/destroy() de painel não são confiáveis no
  * Premiere no momento.
  *
- * Navegação: o nível 0 (raiz da biblioteca) sempre mostra só categorias
- * (subpastas). A partir daí, qualquer nível mostra tanto subpastas quanto
- * arquivos - assim o usuário pode organizar cada categoria com quantos
- * níveis de subpasta quiser (ex.: Transitions/Zoom/arquivo.mp4).
+ * Navegação: árvore fixa na esquerda (accordion - um ramo aberto por vez
+ * em cada nível) + grade fixa na direita, sempre visíveis juntas. A grade
+ * mostra sempre o conteúdo da pasta mais profunda de navigationStack (a
+ * "pasta ativa"), em espelho com o que está expandido na árvore.
  */
 
 const libraryManager = require("../library/libraryManager");
@@ -17,16 +17,18 @@ const timelineManager = require("../premiere/timelineManager");
 const previewManager = require("../premiere/previewManager");
 const projectManager = require("../premiere/projectManager");
 const { PLUGIN_NAME } = require("../config/settings");
-const { renderCategories } = require("./components/categoryList");
+const { renderLibraryTree, updateTreeSelection } = require("./components/libraryTree");
 const { renderAssets, updateSelection } = require("./components/assetGrid");
 const { showStatus, clearStatus } = require("./components/statusBar");
 
 const elements = {};
 
-// Pilha de pastas visitadas a partir de uma categoria de topo. Vazia = tela
-// de categorias (raiz da biblioteca).
+// Pilha de pastas expandidas a partir de uma categoria de topo (mesma
+// pasta por nível - accordion). Vazia = nenhuma categoria de topo
+// selecionada ainda. A pasta ativa (grade da direita) é sempre a última.
 let navigationStack = [];
 let selectedAsset = null;
+let categories = [];
 
 function cacheElements() {
   elements.title = document.getElementById("plugin-title");
@@ -39,13 +41,9 @@ function cacheElements() {
   elements.statusBar = document.getElementById("status-bar");
   elements.noFolderView = document.getElementById("no-folder-view");
   elements.selectFolderButton = document.getElementById("select-folder-button");
-  elements.categoriesView = document.getElementById("categories-view");
-  elements.categoriesList = document.getElementById("categories-list");
-  elements.assetsView = document.getElementById("assets-view");
-  elements.subfoldersList = document.getElementById("subfolders-list");
+  elements.libraryView = document.getElementById("library-view");
+  elements.libraryTree = document.getElementById("library-tree");
   elements.assetsGrid = document.getElementById("assets-grid");
-  elements.activeCategoryLabel = document.getElementById("active-category-label");
-  elements.backButton = document.getElementById("back-button");
   elements.actionBar = document.getElementById("action-bar");
   elements.selectedAssetName = document.getElementById("selected-asset-name");
   elements.importButton = document.getElementById("import-button");
@@ -55,21 +53,16 @@ function cacheElements() {
 function showNoFolderView() {
   navigationStack = [];
   elements.noFolderView.classList.remove("kvn-hidden");
-  elements.categoriesView.classList.add("kvn-hidden");
-  elements.assetsView.classList.add("kvn-hidden");
+  elements.libraryView.classList.add("kvn-hidden");
   elements.actionBar.classList.add("kvn-hidden");
 }
 
-function showCategoriesView() {
-  navigationStack = [];
-  selectedAsset = null;
+function showLibraryView() {
   elements.noFolderView.classList.add("kvn-hidden");
-  elements.categoriesView.classList.remove("kvn-hidden");
-  elements.assetsView.classList.add("kvn-hidden");
-  elements.actionBar.classList.add("kvn-hidden");
+  elements.libraryView.classList.remove("kvn-hidden");
 }
 
-function getCurrentFolder() {
+function getActiveFolder() {
   return navigationStack[navigationStack.length - 1] || null;
 }
 
@@ -80,89 +73,74 @@ async function updateLibraryPathDisplay() {
     : "Nenhuma pasta selecionada.";
 }
 
-async function loadAndRenderCategories() {
+/**
+ * Recarrega a árvore inteira (categorias + conteúdo de cada nível
+ * expandido em navigationStack) e a grade da pasta ativa. É a única forma
+ * de "navegar" agora - não existem mais telas separadas de categoria vs.
+ * pasta, só re-renderizações desse mesmo par árvore+grade.
+ */
+async function refreshLibraryView() {
   try {
-    const categories = await libraryManager.loadCategories();
-    showCategoriesView();
-    renderCategories(elements.categoriesList, categories, handleSelectFolder);
-    return true;
+    categories = await libraryManager.loadCategories();
   } catch (error) {
     if (error.code === "NO_LIBRARY_FOLDER") {
       showNoFolderView();
       return false;
     }
     console.error("[KVN] Erro ao carregar categorias:", error);
-    showCategoriesView();
-    renderCategories(elements.categoriesList, [], () => {});
+    showLibraryView();
+    renderLibraryTree(elements.libraryTree, [], [], [], {});
+    elements.assetsGrid.innerHTML = "";
     showStatus(elements.statusBar, error.message, "error");
     return false;
   }
+
+  showLibraryView();
+
+  let pathContents = [];
+  try {
+    pathContents = await Promise.all(
+      navigationStack.map((folder) => libraryManager.loadFolderContents(folder))
+    );
+  } catch (error) {
+    console.error("[KVN] Erro ao carregar pastas:", error);
+    showStatus(elements.statusBar, error.message, "error");
+  }
+
+  renderLibraryTree(elements.libraryTree, categories, navigationStack, pathContents, {
+    onSelectFolder: handleSelectFolder,
+    onSelectAsset: handleSelectAsset,
+    onImportAsset: handleImportAsset,
+    selectedAssetPath: selectedAsset && selectedAsset.path,
+  });
+
+  const activeContents = pathContents[pathContents.length - 1];
+  const activeAssets = activeContents ? activeContents.assets : [];
+  renderAssets(
+    elements.assetsGrid,
+    activeAssets,
+    selectedAsset && selectedAsset.path,
+    handleSelectAsset,
+    handleImportAsset,
+    handlePreviewAsset
+  );
+
+  return true;
 }
 
 /**
- * Mostra o conteúdo de uma pasta (categoria de topo ou qualquer subpasta
- * dela): subpastas navegáveis e/ou arquivos. Não mexe em navigationStack -
- * quem decide empilhar/desempilhar é o chamador (handleSelectFolder ou
- * handleBack).
+ * Clique numa pasta da árvore, em qualquer nível. Se já é a pasta ativa
+ * naquele nível, mantém (não fecha o ramo - accordion só troca quem está
+ * aberto, não colapsa tudo num clique repetido). Trunca navigationStack
+ * em depth antes de empilhar a nova escolha, para fechar qualquer ramo
+ * irmão que estivesse aberto nesse nível ou em níveis mais profundos.
  */
-function enterFolder(folder) {
-  selectedAsset = null;
-
-  elements.activeCategoryLabel.textContent = folder.name.toUpperCase();
-  elements.noFolderView.classList.add("kvn-hidden");
-  elements.categoriesView.classList.add("kvn-hidden");
-  elements.assetsView.classList.remove("kvn-hidden");
-  elements.actionBar.classList.add("kvn-hidden");
-
-  loadAndRenderFolderContents(folder);
-}
-
-function handleSelectFolder(folder) {
+function handleSelectFolder(folder, depth) {
+  navigationStack = navigationStack.slice(0, depth);
   navigationStack.push(folder);
-  enterFolder(folder);
-}
-
-function handleBack() {
-  navigationStack.pop();
-  const parent = getCurrentFolder();
-  if (parent) {
-    enterFolder(parent);
-  } else {
-    loadAndRenderCategories();
-  }
-}
-
-async function loadAndRenderFolderContents(folder) {
-  elements.subfoldersList.innerHTML = "";
-  elements.assetsGrid.innerHTML = "";
-
-  try {
-    const { subfolders, assets } = await libraryManager.loadFolderContents(folder);
-
-    if (subfolders.length === 0 && assets.length === 0) {
-      renderAssets(elements.assetsGrid, [], null, handleSelectAsset, handleImportAsset);
-      return true;
-    }
-
-    if (subfolders.length > 0) {
-      renderCategories(elements.subfoldersList, subfolders, handleSelectFolder);
-    }
-    if (assets.length > 0) {
-      renderAssets(
-        elements.assetsGrid,
-        assets,
-        selectedAsset && selectedAsset.path,
-        handleSelectAsset,
-        handleImportAsset,
-        handlePreviewAsset
-      );
-    }
-    return true;
-  } catch (error) {
-    console.error(`[KVN] Erro ao carregar "${folder.name}":`, error);
-    showStatus(elements.statusBar, `Não foi possível ler "${folder.name}": ${error.message}`, "error");
-    return false;
-  }
+  selectedAsset = null;
+  elements.actionBar.classList.add("kvn-hidden");
+  refreshLibraryView();
 }
 
 function handleSelectAsset(asset) {
@@ -170,10 +148,11 @@ function handleSelectAsset(asset) {
   elements.selectedAssetName.textContent = asset.name;
   elements.actionBar.classList.remove("kvn-hidden");
 
-  // Só atualiza o destaque do card - recriar a grade inteira a cada
-  // seleção (como antes) refazia o carregamento de todo <img>/<video> já
-  // carregado, o que travava pastas com muitos arquivos.
+  // Só atualiza o destaque (árvore + grade) - recriar tudo a cada seleção
+  // refazia o carregamento de todo <img>/<video> já carregado, o que
+  // travava pastas com muitos arquivos.
   updateSelection(elements.assetsGrid, asset.path);
+  updateTreeSelection(elements.libraryTree, asset.path);
 }
 
 async function handlePreviewAsset(asset) {
@@ -212,13 +191,10 @@ async function handleRefresh() {
   clearStatus(elements.statusBar);
   libraryManager.invalidateCache();
 
-  const currentFolder = getCurrentFolder();
-  const success = currentFolder
-    ? await loadAndRenderFolderContents(currentFolder)
-    : await loadAndRenderCategories();
+  const success = await refreshLibraryView();
 
   // Só mostra "atualizado" se nada deu erro no meio do caminho - senão a
-  // mensagem de erro (mostrada dentro das funções acima) fica escondida.
+  // mensagem de erro (mostrada dentro de refreshLibraryView) fica escondida.
   if (success) {
     showStatus(elements.statusBar, "Biblioteca atualizada.", "info");
   }
@@ -231,7 +207,9 @@ async function handleChooseFolder() {
     return;
   }
   await updateLibraryPathDisplay();
-  await loadAndRenderCategories();
+  navigationStack = [];
+  selectedAsset = null;
+  await refreshLibraryView();
   showStatus(elements.statusBar, "Biblioteca atualizada.", "success");
 }
 
@@ -253,7 +231,6 @@ async function init() {
 
   elements.refreshButton.addEventListener("click", handleRefresh);
   elements.settingsButton.addEventListener("click", toggleSettingsInfo);
-  elements.backButton.addEventListener("click", handleBack);
   elements.selectFolderButton.addEventListener("click", handleChooseFolder);
   elements.changeFolderButton.addEventListener("click", handleChooseFolder);
   elements.importButton.addEventListener("click", () => {
@@ -271,7 +248,7 @@ async function init() {
   await updateProjectStatus();
 
   await updateLibraryPathDisplay();
-  await loadAndRenderCategories();
+  await refreshLibraryView();
 }
 
 window.addEventListener("load", () => {

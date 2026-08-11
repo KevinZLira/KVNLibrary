@@ -134,14 +134,32 @@ KVNLibrary/                  ← raiz do plugin (é isso que o UDT carrega)
     │   └── timelineManager.js ← insere na sequência ativa via SequenceEditor
     └── ui/
         ├── app.js             ← controlador da UI (estado, eventos, navegação)
-        ├── components/        ← renderização pura (categorias, grade de assets, waveform,
-        │                        status)
-        └── styles/theme.css   ← tema escuro compacto
+        ├── components/        ← renderização pura (árvore de categorias, grade de assets,
+        │                        waveform, status)
+        └── styles/theme.css   ← tema escuro/verde neon, compacto
 ```
 
 A separação existe para que funcionalidades futuras (thumbnails reais, busca, múltiplas
 bibliotecas, timeline) entrem em módulos novos ou nas mesmas pastas, sem reescrever o
 restante.
+
+## Navegação da biblioteca
+
+A UI é um painel dividido em duas colunas, sempre visíveis ao mesmo tempo (sem tela de
+"voltar"):
+
+- **Árvore (esquerda)**: lista as categorias de topo e, ao clicar numa pasta, expande as
+  subpastas e arquivos dela logo abaixo — no estilo *accordion*: só um ramo fica aberto por
+  vez em cada nível (clicar numa pasta irmã fecha a anterior). A árvore espelha exatamente
+  a "pasta ativa" atual.
+- **Grade (direita)**: sempre mostra todos os arquivos da pasta ativa (a mais profunda que
+  estiver expandida na árvore), com preview real — capa de vídeo/imagem via `<video>`/`<img>`
+  e uma forma de onda decorativa para áudio, que também dispara pré-escuta no Source Monitor
+  ao clicar.
+- **Responsiva**: os cards da grade têm largura fixa em pixels (não porcentagem), então o
+  número de colunas se ajusta sozinho à largura do painel — uma coluna quando estreito, várias
+  quando largo. A árvore da esquerda também pode ser redimensionada arrastando sua borda
+  direita.
 
 ## Biblioteca local
 
@@ -243,10 +261,11 @@ O painel mostra mensagens específicas (não falha silenciosamente) para:
 - Os arquivos de uma categoria só são lidos quando o usuário entra nela (sob demanda).
 - Um cache em memória evita reler o disco ao reabrir uma categoria já visitada; o cache só é
   invalidado no clique em **Refresh Library**.
-- Numa categoria com muitos arquivos, os cards são todos criados, mas o `<img>`/`<video>` de
-  cada thumbnail só carrega de fato (via `IntersectionObserver`) quando o card entra ou está
-  perto de entrar na área visível da grade — carregar centenas de arquivos de mídia ao mesmo
-  tempo travava (e já chegou a travar de vez) o painel em pastas grandes.
+- Numa pasta com muitos arquivos, os cards são criados em lotes pequenos (um por frame, via
+  `requestAnimationFrame`) em vez de tudo de uma vez, e o `<img>`/`<video>` de cada thumbnail
+  só carrega de fato (via `IntersectionObserver`) quando o card entra ou está perto de entrar
+  na área visível da grade — criar milhares de cards e carregar centenas de arquivos de mídia
+  ao mesmo tempo travava (e já chegou a travar de vez) o painel em pastas grandes.
 - Selecionar um asset não recria a grade inteira - só troca a classe CSS do card selecionado
   (`updateSelection()`), já que recriar todos os cards a cada clique refazia também o
   carregamento de toda mídia já carregada.

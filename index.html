@@ -65,20 +65,13 @@
         </div>
       </section>
 
-      <!-- View: lista de categorias -->
-      <section id="categories-view" class="kvn-view kvn-hidden">
-        <h2 class="kvn-section-label">CATEGORIAS</h2>
-        <div id="categories-list" class="kvn-categories-list"></div>
-      </section>
-
-      <!-- View: conteúdo de uma categoria (ou subpasta dela) -->
-      <section id="assets-view" class="kvn-view kvn-hidden">
-        <button id="back-button" class="kvn-back-button">
-          &#8592; Voltar
-        </button>
-        <h2 id="active-category-label" class="kvn-section-label"></h2>
-        <div id="subfolders-list" class="kvn-categories-list"></div>
-        <div id="assets-grid" class="kvn-assets-grid"></div>
+      <!-- View: biblioteca - árvore de categorias na esquerda (sempre
+           visível) + grade dos arquivos da pasta ativa na direita -->
+      <section id="library-view" class="kvn-library-view kvn-hidden">
+        <aside id="library-tree" class="kvn-library-tree"></aside>
+        <div class="kvn-library-main">
+          <div id="assets-grid" class="kvn-assets-grid"></div>
+        </div>
       </section>
 
       <footer id="action-bar" class="kvn-action-bar kvn-hidden">

@@ -1,16 +1,17 @@
 :root {
-  --kvn-bg: #1e1e1e;
-  --kvn-bg-elevated: #262626;
-  --kvn-bg-card: #2b2b2b;
-  --kvn-bg-card-hover: #333333;
-  --kvn-bg-card-selected: #37414d;
-  --kvn-border: #3a3a3a;
-  --kvn-text: #e0e0e0;
-  --kvn-text-muted: #9a9a9a;
-  --kvn-accent: #3d8bfd;
-  --kvn-accent-hover: #5c9dff;
-  --kvn-error: #e5484d;
-  --kvn-success: #3dd68c;
+  --kvn-bg: #0a0d0a;
+  --kvn-bg-elevated: #111511;
+  --kvn-bg-card: #12160f;
+  --kvn-bg-card-hover: #182015;
+  --kvn-bg-card-selected: #16351e;
+  --kvn-border: #24301f;
+  --kvn-text: #d7ffe0;
+  --kvn-text-muted: #6f8f74;
+  --kvn-accent: #39ff88;
+  --kvn-accent-hover: #6bffab;
+  --kvn-accent-dim: #1f8a4c;
+  --kvn-error: #ff5d5d;
+  --kvn-success: #39ff88;
 }
 
 * {
@@ -45,9 +46,11 @@ body {
 
 .kvn-title {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.4px;
+  color: var(--kvn-accent);
+  text-shadow: 0 0 6px rgba(57, 255, 136, 0.45);
 }
 
 .kvn-header-actions {
@@ -69,7 +72,7 @@ body {
 
 .kvn-icon-button:hover {
   background: var(--kvn-bg-card-hover);
-  color: var(--kvn-text);
+  color: var(--kvn-accent);
 }
 
 .kvn-settings-info {
@@ -137,17 +140,17 @@ body {
 }
 
 .kvn-status-bar.kvn-status-error {
-  background: rgba(229, 72, 77, 0.15);
+  background: rgba(255, 93, 93, 0.15);
   color: var(--kvn-error);
 }
 
 .kvn-status-bar.kvn-status-info {
-  background: rgba(61, 139, 253, 0.12);
+  background: rgba(57, 255, 136, 0.1);
   color: var(--kvn-accent-hover);
 }
 
 .kvn-status-bar.kvn-status-success {
-  background: rgba(61, 214, 140, 0.12);
+  background: rgba(57, 255, 136, 0.12);
   color: var(--kvn-success);
 }
 
@@ -170,37 +173,6 @@ body {
   margin: 4px 0 8px 0;
 }
 
-.kvn-categories-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.kvn-category-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 10px;
-  border-radius: 4px;
-  cursor: pointer;
-  background: var(--kvn-bg-card);
-  border: 1px solid transparent;
-}
-
-.kvn-category-row:hover {
-  background: var(--kvn-bg-card-hover);
-  border-color: var(--kvn-border);
-}
-
-.kvn-category-name {
-  font-size: 12px;
-}
-
-.kvn-category-chevron {
-  color: var(--kvn-text-muted);
-  font-size: 11px;
-}
-
 .kvn-empty-state {
   color: var(--kvn-text-muted);
   font-size: 11.5px;
@@ -209,16 +181,89 @@ body {
   line-height: 1.5;
 }
 
-.kvn-back-button {
-  background: transparent;
-  border: none;
-  color: var(--kvn-accent-hover);
-  cursor: pointer;
-  font-size: 11.5px;
-  padding: 0 0 8px 0;
+/* Biblioteca: árvore fixa na esquerda + grade responsiva na direita,
+   sempre visíveis lado a lado (sem tela de "voltar"). */
+.kvn-library-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
 }
 
-.kvn-back-button:hover {
+.kvn-library-tree {
+  flex: 0 0 130px;
+  min-width: 90px;
+  max-width: 45%;
+  overflow-y: auto;
+  border-right: 1px solid var(--kvn-border);
+  padding: 8px 4px 12px 4px;
+  resize: horizontal;
+}
+
+.kvn-library-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 8px 10px 12px 10px;
+}
+
+.kvn-tree-folder-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 4px 5px calc(4px + var(--kvn-depth, 0) * 10px);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--kvn-text-muted);
+}
+
+.kvn-tree-folder-row:hover {
+  background: var(--kvn-bg-card-hover);
+  color: var(--kvn-text);
+}
+
+.kvn-tree-folder-row.kvn-tree-active {
+  background: var(--kvn-bg-card-selected);
+  color: var(--kvn-accent);
+}
+
+.kvn-tree-chevron {
+  width: 10px;
+  flex-shrink: 0;
+  font-size: 10px;
+  text-align: center;
+}
+
+.kvn-tree-folder-icon {
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+.kvn-tree-folder-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.kvn-tree-file-row {
+  padding: 4px 4px 4px calc(4px + var(--kvn-depth, 0) * 10px);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--kvn-text-muted);
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kvn-tree-file-row:hover {
+  background: var(--kvn-bg-card-hover);
+  color: var(--kvn-text);
+}
+
+.kvn-tree-file-row.kvn-tree-active {
+  background: var(--kvn-bg-card-selected);
   color: var(--kvn-accent);
 }
 
@@ -228,11 +273,16 @@ body {
   gap: 8px;
 }
 
+/* Largura fixa em px (em vez de percentual) - assim o número de colunas
+   se adapta sozinho à largura disponível (painel estreito = 1 coluna,
+   painel largo = várias), sem precisar de CSS grid (que se mostrou
+   quebrado nesse webview do UXP). */
 .kvn-asset-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  flex: 0 0 calc((100% - 16px) / 3);
+  flex: 0 1 130px;
+  max-width: 100%;
   box-sizing: border-box;
   background: var(--kvn-bg-card);
   border: 1px solid var(--kvn-border);
@@ -244,16 +294,18 @@ body {
 
 .kvn-asset-card:hover {
   background: var(--kvn-bg-card-hover);
+  border-color: var(--kvn-accent-dim);
 }
 
 .kvn-asset-card.kvn-asset-selected {
   background: var(--kvn-bg-card-selected);
   border-color: var(--kvn-accent);
+  box-shadow: 0 0 8px rgba(57, 255, 136, 0.25);
 }
 
 .kvn-asset-thumb {
-  width: 40px;
-  height: 40px;
+  width: 100%;
+  height: 70px;
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -261,16 +313,16 @@ body {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.3px;
-  color: #101010;
+  color: #06120a;
   margin-bottom: 6px;
 }
 
-.kvn-asset-thumb-video { background: #7fb2ff; }
-.kvn-asset-thumb-audio { background: #7fe0c2; }
-.kvn-asset-thumb-image { background: #ffd27f; }
-.kvn-asset-thumb-mogrt { background: #d9a3ff; }
-.kvn-asset-thumb-preset { background: #ff9f9f; }
-.kvn-asset-thumb-file { background: #b8b8b8; }
+.kvn-asset-thumb-video { background: #6bffab; }
+.kvn-asset-thumb-audio { background: #39ff88; }
+.kvn-asset-thumb-image { background: #a8ffcb; }
+.kvn-asset-thumb-mogrt { background: #8fffcf; }
+.kvn-asset-thumb-preset { background: #c8ffdf; }
+.kvn-asset-thumb-file { background: #7fae8f; }
 
 .kvn-asset-thumb-media {
   object-fit: cover;
@@ -280,12 +332,13 @@ body {
 .kvn-audio-thumb {
   display: block;
   width: 100%;
-  height: 34px;
+  height: 70px;
   border-radius: 4px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  background: #17171a;
+  background: #0c110d;
+  border: 1px solid var(--kvn-border);
 }
 
 .kvn-audio-waveform {
@@ -297,17 +350,17 @@ body {
 .kvn-audio-thumb-play {
   position: absolute;
   top: 50%;
-  left: 4px;
+  left: 6px;
   transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.55);
-  color: #ffffff;
+  color: var(--kvn-accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 8px;
+  font-size: 9px;
   pointer-events: none;
 }
 
@@ -353,23 +406,26 @@ body {
 
 .kvn-primary-button {
   background: var(--kvn-accent);
-  color: #ffffff;
+  color: #06120a;
   border: none;
   border-radius: 4px;
   padding: 7px 12px;
   font-size: 11.5px;
+  font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
 }
 
 .kvn-primary-button:hover {
   background: var(--kvn-accent-hover);
+  box-shadow: 0 0 8px rgba(57, 255, 136, 0.4);
 }
 
 .kvn-primary-button:disabled {
   background: var(--kvn-border);
   color: var(--kvn-text-muted);
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .kvn-secondary-button {
@@ -385,6 +441,7 @@ body {
 .kvn-secondary-button:hover {
   background: var(--kvn-bg-card-hover);
   color: var(--kvn-accent);
+  border-color: var(--kvn-accent-dim);
 }
 
 .kvn-onboarding {
