@@ -45,11 +45,15 @@ function renderLibraryTree(container, categories, activePath, pathContents, call
         row.classList.add("kvn-tree-active");
       }
 
+      const folderIcon = document.createElement("span");
+      folderIcon.className = "kvn-tree-folder-icon";
+
       const name = document.createElement("span");
       name.className = "kvn-tree-folder-name";
       name.textContent = folder.name;
 
       row.appendChild(createChevron(isExpanded));
+      row.appendChild(folderIcon);
       row.appendChild(name);
       row.addEventListener("click", () => callbacks.onSelectFolder(folder, depth));
 

@@ -36,11 +36,10 @@ function cacheElements() {
   elements.settingsButton = document.getElementById("settings-button");
   elements.settingsInfo = document.getElementById("settings-info");
   elements.libraryPath = document.getElementById("library-path");
-  elements.changeFolderButton = document.getElementById("change-folder-button");
   elements.projectStatus = document.getElementById("project-status");
   elements.statusBar = document.getElementById("status-bar");
   elements.noFolderView = document.getElementById("no-folder-view");
-  elements.selectFolderButton = document.getElementById("select-folder-button");
+  elements.chooseFolderHeaderButton = document.getElementById("choose-folder-header-button");
   elements.libraryView = document.getElementById("library-view");
   elements.libraryTree = document.getElementById("library-tree");
   elements.assetsGrid = document.getElementById("assets-grid");
@@ -71,6 +70,12 @@ async function updateLibraryPathDisplay() {
   elements.libraryPath.textContent = folder
     ? folder.nativePath
     : "Nenhuma pasta selecionada.";
+
+  // Mesmo botão do header serve pra escolher a pasta a primeira vez e pra
+  // trocar depois - só muda o texto conforme já existe uma pasta ou não.
+  elements.chooseFolderHeaderButton.textContent = folder
+    ? "Trocar Biblioteca"
+    : "Selecionar Biblioteca";
 }
 
 /**
@@ -231,8 +236,7 @@ async function init() {
 
   elements.refreshButton.addEventListener("click", handleRefresh);
   elements.settingsButton.addEventListener("click", toggleSettingsInfo);
-  elements.selectFolderButton.addEventListener("click", handleChooseFolder);
-  elements.changeFolderButton.addEventListener("click", handleChooseFolder);
+  elements.chooseFolderHeaderButton.addEventListener("click", handleChooseFolder);
   elements.importButton.addEventListener("click", () => {
     if (selectedAsset) {
       handleImportAsset(selectedAsset);
