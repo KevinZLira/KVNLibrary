@@ -118,21 +118,40 @@ function createAudioThumb(asset) {
     progressRafId = requestAnimationFrame(updateProgressLoop);
   }
 
-  function startPlayback() {
+  async function startPlayback() {
     const context = waveform.getAudioContext();
-    sourceNode = context.createBufferSource();
-    sourceNode.buffer = audioBuffer;
-    sourceNode.connect(context.destination);
-    sourceNode.onended = () => {
-      if (isPlaying) {
-        stopPlayback(true);
+    // DIAGNÓSTICO TEMPORÁRIO - alguns webviews Chromium criam o
+    // AudioContext em estado "suspended" até um resume() disparado por
+    // gesto do usuário (isto é um clique, então deveria bastar). Abra o
+    // console do UDT e cole a saída dessas linhas se o som ainda não tocar.
+    console.log(`[KVN] AudioContext.state antes do resume: ${context.state}`);
+    if (context.state !== "running") {
+      try {
+        await context.resume();
+      } catch (error) {
+        console.error("[KVN] context.resume() falhou:", error);
       }
-    };
-    startedAtContextTime = context.currentTime;
-    sourceNode.start(0, pausedAtOffset);
-    isPlaying = true;
-    playIcon.textContent = "❚❚";
-    progressRafId = requestAnimationFrame(updateProgressLoop);
+    }
+    console.log(`[KVN] AudioContext.state depois do resume: ${context.state}`);
+
+    try {
+      sourceNode = context.createBufferSource();
+      sourceNode.buffer = audioBuffer;
+      sourceNode.connect(context.destination);
+      sourceNode.onended = () => {
+        if (isPlaying) {
+          stopPlayback(true);
+        }
+      };
+      startedAtContextTime = context.currentTime;
+      sourceNode.start(0, pausedAtOffset);
+      isPlaying = true;
+      playIcon.textContent = "❚❚";
+      progressRafId = requestAnimationFrame(updateProgressLoop);
+      console.log("[KVN] sourceNode.start() chamado sem erro.");
+    } catch (error) {
+      console.error("[KVN] Falha ao iniciar playback do áudio:", error);
+    }
   }
 
   function stopPlayback(reachedEnd) {

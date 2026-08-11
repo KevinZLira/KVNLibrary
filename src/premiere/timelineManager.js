@@ -39,6 +39,10 @@ async function findLastEmptyTrackIndex(sequence, kind) {
     kind === "video" ? sequence.getVideoTrack(index) : sequence.getAudioTrack(index);
 
   const count = await getCount();
+  // DIAGNÓSTICO TEMPORÁRIO - o resultado esperado (índice da trilha vazia
+  // mais alta) não bateu com o que o usuário viu no Premiere. Abra o
+  // console do UDT ("{}" na linha do plugin) e cole a saída dessas linhas.
+  console.log(`[KVN] ${kind}: ${count} trilha(s) no total`);
   for (let index = count - 1; index >= 0; index--) {
     const track = await getTrack(index);
     // A referência oficial documenta getTrackItems() como síncrono (retorna
@@ -48,10 +52,15 @@ async function findLastEmptyTrackIndex(sequence, kind) {
     const clipItems = await Promise.resolve(
       track.getTrackItems(ppro.Constants.TrackItemType.CLIP, false)
     );
+    console.log(
+      `[KVN] ${kind} índice ${index}: ${clipItems ? clipItems.length : "null/undefined"} clip(s)`
+    );
     if (!clipItems || clipItems.length === 0) {
+      console.log(`[KVN] ${kind}: escolhida a trilha índice ${index}`);
       return index;
     }
   }
+  console.log(`[KVN] ${kind}: nenhuma trilha vazia encontrada, criando nova no índice ${count}`);
   return count;
 }
 
