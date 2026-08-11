@@ -1,9 +1,10 @@
 /**
- * Paleta e medidas extraídas do CSS exportado do Figma (Inspect) do
- * rascunho enviado pelo usuário: fundo preto, blocos sólidos sem cantos
- * arredondados na árvore, cards em dois tons (moldura + "tela" interna),
- * separadores com glow verde neon e botões em pílula verde com texto
- * preto.
+ * Paleta e medidas extraídas do export "Figma Make" (React/Tailwind) do
+ * rascunho enviado pelo usuário: fundo #1b1b1b (não preto puro - só o
+ * header, em #000, é preto de verdade), área da árvore+grade em #161616,
+ * blocos sólidos sem cantos arredondados na árvore, cards em dois tons
+ * (moldura + "tela" interna), separadores com glow verde neon e botões
+ * em pílula verde com texto preto.
  *
  * Evitados de propósito, por causarem artefatos visuais nesse webview do
  * UXP (confirmado testando no painel real): `border-radius` muito grande
@@ -14,7 +15,9 @@
  */
 
 :root {
-  --kvn-bg: #000000;
+  --kvn-bg: #1b1b1b;
+  --kvn-bg-header: #000000;
+  --kvn-bg-surface: #161616;
   --kvn-bg-elevated: #0d0d0d;
   --kvn-bg-row: #1f1f1f;
   --kvn-bg-row-hover: #2a2a2a;
@@ -61,7 +64,7 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px;
-  background: #000000;
+  background: var(--kvn-bg-header);
   border-bottom: 2px solid var(--kvn-accent);
   box-shadow: 0 2px 10px 0 var(--kvn-accent-glow);
   flex-shrink: 0;
@@ -198,7 +201,7 @@ body {
   min-height: 0;
   display: flex;
   overflow: hidden;
-  background: var(--kvn-bg);
+  background: var(--kvn-bg-surface);
 }
 
 .kvn-library-tree {
@@ -206,7 +209,7 @@ body {
   min-width: 90px;
   max-width: 45%;
   overflow-y: auto;
-  background: var(--kvn-bg);
+  background: var(--kvn-bg-surface);
   border-right: 2px solid var(--kvn-accent);
   box-shadow: 2px 0 10px 0 var(--kvn-accent-glow);
 }
@@ -412,7 +415,7 @@ body {
   padding: 8px 10px;
   border-top: 2px solid var(--kvn-accent);
   box-shadow: 0 -2px 10px 0 var(--kvn-accent-glow);
-  background: #000000;
+  background: var(--kvn-bg-header);
   flex-shrink: 0;
 }
 
