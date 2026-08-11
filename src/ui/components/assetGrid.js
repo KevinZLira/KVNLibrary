@@ -116,13 +116,27 @@ function createAudioThumb(asset) {
 
   // O card inteiro toca/pausa (não só a tira de 34px da forma de onda) -
   // ver comentário em renderAssets sobre por que isso é ligado lá fora.
+  // DIAGNÓSTICO TEMPORÁRIO em cada etapa - abra o console do UDT e cole
+  // tudo que aparecer depois de clicar num card de áudio.
   wrapper.togglePlayback = () => {
+    console.log(
+      `[KVN] togglePlayback("${asset.name}") - paused=${player.paused} readyState=${player.readyState} networkState=${player.networkState} src="${player.currentSrc}"`
+    );
     if (player.paused) {
-      player.play().catch((error) => {
-        console.error(`[KVN] Falha ao tocar "${asset.name}":`, error);
-      });
+      const playResult = player.play();
+      console.log(`[KVN] play() retornou:`, playResult);
+      if (playResult && typeof playResult.then === "function") {
+        playResult
+          .then(() => {
+            console.log(`[KVN] "${asset.name}" play() resolveu - paused agora=${player.paused}`);
+          })
+          .catch((error) => {
+            console.error(`[KVN] "${asset.name}" play() rejeitou:`, error);
+          });
+      }
     } else {
       player.pause();
+      console.log(`[KVN] "${asset.name}" pause() chamado`);
     }
   };
 
@@ -178,6 +192,9 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
     // tira da forma de onda (o usuário clica onde for mais natural, ex.:
     // em cima do nome do arquivo, e isso precisa funcionar também).
     card.addEventListener("click", () => {
+      if (asset.kind === "audio") {
+        console.log(`[KVN] card click - "${asset.name}"`);
+      }
       onSelectAsset(asset);
       if (typeof thumb.togglePlayback === "function") {
         thumb.togglePlayback();
