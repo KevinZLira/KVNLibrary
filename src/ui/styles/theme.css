@@ -1,17 +1,29 @@
+/**
+ * Paleta e medidas extraídas do CSS exportado do Figma (Inspect) do
+ * rascunho enviado pelo usuário: fundo preto, blocos sólidos sem cantos
+ * arredondados na árvore, cards em dois tons (moldura + "tela" interna),
+ * separadores com glow verde neon e botões em pílula verde com texto
+ * preto. Onde o rascunho não definia algo (ex.: header com refresh/
+ * settings, barra de ações), a mesma linguagem visual foi estendida.
+ */
+
 :root {
-  --kvn-bg: #0a0d0a;
-  --kvn-bg-elevated: #111511;
-  --kvn-bg-card: #12160f;
-  --kvn-bg-card-hover: #182015;
-  --kvn-bg-card-selected: #16351e;
-  --kvn-border: #24301f;
-  --kvn-text: #d7ffe0;
-  --kvn-text-muted: #6f8f74;
-  --kvn-accent: #39ff88;
-  --kvn-accent-hover: #6bffab;
-  --kvn-accent-dim: #1f8a4c;
+  --kvn-bg: #000000;
+  --kvn-bg-elevated: #0d0d0d;
+  --kvn-bg-row: #1f1f1f;
+  --kvn-bg-row-file: #1c1c1c;
+  --kvn-bg-card: #2a2a2a;
+  --kvn-bg-card-inner: #232323;
+  --kvn-bg-card-hover: #323232;
+  --kvn-border: #2a2a2a;
+  --kvn-text: #ffffff;
+  --kvn-text-muted: #8a8a8a;
+  --kvn-accent: #7ff425;
+  --kvn-accent-strong: #80f425;
+  --kvn-accent-text: #000000;
+  --kvn-accent-glow: rgba(127, 244, 37, 0.55);
   --kvn-error: #ff5d5d;
-  --kvn-success: #39ff88;
+  --kvn-success: #7ff425;
 }
 
 * {
@@ -24,7 +36,7 @@ body {
   padding: 0;
   background: var(--kvn-bg);
   color: var(--kvn-text);
-  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 12px;
 }
 
@@ -33,6 +45,7 @@ body {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  background: var(--kvn-bg);
 }
 
 .kvn-header {
@@ -40,7 +53,9 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px;
-  border-bottom: 1px solid var(--kvn-border);
+  background: #000000;
+  border-bottom: 2px solid var(--kvn-accent);
+  box-shadow: 0 2px 10px 0 var(--kvn-accent-glow);
   flex-shrink: 0;
 }
 
@@ -50,7 +65,7 @@ body {
   margin: 0;
   letter-spacing: 0.4px;
   color: var(--kvn-accent);
-  text-shadow: 0 0 6px rgba(57, 255, 136, 0.45);
+  text-shadow: 0 0 6px var(--kvn-accent-glow);
 }
 
 .kvn-header-actions {
@@ -91,10 +106,11 @@ body {
 }
 
 .kvn-settings-value {
-  margin: 0 0 4px 0;
+  margin: 0 0 6px 0;
   font-family: Consolas, "Courier New", monospace;
   font-size: 11px;
   word-break: break-all;
+  color: var(--kvn-text-muted);
 }
 
 .kvn-settings-hint {
@@ -145,12 +161,12 @@ body {
 }
 
 .kvn-status-bar.kvn-status-info {
-  background: rgba(57, 255, 136, 0.1);
-  color: var(--kvn-accent-hover);
+  background: rgba(127, 244, 37, 0.1);
+  color: var(--kvn-accent);
 }
 
 .kvn-status-bar.kvn-status-success {
-  background: rgba(57, 255, 136, 0.12);
+  background: rgba(127, 244, 37, 0.14);
   color: var(--kvn-success);
 }
 
@@ -182,131 +198,145 @@ body {
 }
 
 /* Biblioteca: árvore fixa na esquerda + grade responsiva na direita,
-   sempre visíveis lado a lado (sem tela de "voltar"). */
+   sempre visíveis lado a lado. Divisor entre as duas colunas com glow
+   verde, igual às linhas do rascunho. */
 .kvn-library-view {
   flex: 1;
   min-height: 0;
   display: flex;
   overflow: hidden;
+  background: var(--kvn-bg);
 }
 
 .kvn-library-tree {
-  flex: 0 0 130px;
+  flex: 0 0 150px;
   min-width: 90px;
   max-width: 45%;
   overflow-y: auto;
-  border-right: 1px solid var(--kvn-border);
-  padding: 8px 4px 12px 4px;
+  background: var(--kvn-bg);
+  border-right: 2px solid var(--kvn-accent);
+  box-shadow: 2px 0 10px 0 var(--kvn-accent-glow);
   resize: horizontal;
+}
+
+.kvn-library-tree::-webkit-scrollbar,
+.kvn-library-main::-webkit-scrollbar {
+  width: 7px;
+}
+
+.kvn-library-tree::-webkit-scrollbar-track,
+.kvn-library-main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kvn-library-tree::-webkit-scrollbar-thumb,
+.kvn-library-main::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 9px;
 }
 
 .kvn-library-main {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: 8px 10px 12px 10px;
+  padding: 10px;
 }
 
+/* Blocos sólidos, sem cantos arredondados, sem ícone de pasta - só
+   chevron + nome, igual ao rascunho. Pasta e arquivo usam tons de fundo
+   diferentes (não por profundidade, por tipo de linha). */
 .kvn-tree-folder-row {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 5px 4px 5px calc(4px + var(--kvn-depth, 0) * 10px);
-  border-radius: 4px;
+  gap: 4px;
+  padding: 9px 8px 9px calc(8px + var(--kvn-depth, 0) * 12px);
   cursor: pointer;
-  color: var(--kvn-text-muted);
+  background: var(--kvn-bg-row);
+  color: var(--kvn-text);
+  border-left: 3px solid transparent;
 }
 
 .kvn-tree-folder-row:hover {
-  background: var(--kvn-bg-card-hover);
-  color: var(--kvn-text);
+  filter: brightness(1.2);
 }
 
 .kvn-tree-folder-row.kvn-tree-active {
-  background: var(--kvn-bg-card-selected);
-  color: var(--kvn-accent);
+  border-left-color: var(--kvn-accent);
 }
 
 .kvn-tree-chevron {
   width: 10px;
   flex-shrink: 0;
-  font-size: 10px;
+  font-size: 11px;
   text-align: center;
-}
-
-.kvn-tree-folder-icon {
-  flex-shrink: 0;
-  font-size: 10px;
+  color: var(--kvn-text);
 }
 
 .kvn-tree-folder-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 11.5px;
 }
 
 .kvn-tree-file-row {
-  padding: 4px 4px 4px calc(4px + var(--kvn-depth, 0) * 10px);
-  border-radius: 4px;
+  padding: 8px 8px 8px calc(22px + var(--kvn-depth, 0) * 12px);
   cursor: pointer;
-  color: var(--kvn-text-muted);
-  font-size: 10.5px;
+  background: var(--kvn-bg-row-file);
+  color: var(--kvn-text);
+  font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  border-left: 3px solid transparent;
 }
 
 .kvn-tree-file-row:hover {
-  background: var(--kvn-bg-card-hover);
-  color: var(--kvn-text);
+  filter: brightness(1.2);
 }
 
 .kvn-tree-file-row.kvn-tree-active {
-  background: var(--kvn-bg-card-selected);
+  border-left-color: var(--kvn-accent);
   color: var(--kvn-accent);
 }
 
 .kvn-assets-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
 }
 
 /* Largura fixa em px (em vez de percentual) - assim o número de colunas
-   se adapta sozinho à largura disponível (painel estreito = 1 coluna,
-   painel largo = várias), sem precisar de CSS grid (que se mostrou
-   quebrado nesse webview do UXP). */
+   se adapta sozinho à largura disponível, sem precisar de CSS grid (que
+   se mostrou quebrado nesse webview do UXP). */
 .kvn-asset-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  flex: 0 1 130px;
+  align-items: stretch;
+  flex: 0 1 150px;
   max-width: 100%;
   box-sizing: border-box;
   background: var(--kvn-bg-card);
-  border: 1px solid var(--kvn-border);
-  border-radius: 6px;
-  padding: 8px 6px;
+  border-radius: 3px;
+  padding: 10px;
   cursor: pointer;
-  text-align: center;
+  text-align: left;
 }
 
 .kvn-asset-card:hover {
   background: var(--kvn-bg-card-hover);
-  border-color: var(--kvn-accent-dim);
 }
 
 .kvn-asset-card.kvn-asset-selected {
-  background: var(--kvn-bg-card-selected);
-  border-color: var(--kvn-accent);
-  box-shadow: 0 0 8px rgba(57, 255, 136, 0.25);
+  box-shadow: 0 0 0 2px var(--kvn-accent), 0 0 10px 0 var(--kvn-accent-glow);
 }
 
+/* "Tela" interna do card (moldura #2A2A2A + tela #232323, igual ao
+   rascunho), com a mesma proporção do mockup (304x187 ≈ 1.63:1). */
 .kvn-asset-thumb {
   width: 100%;
-  height: 70px;
-  border-radius: 4px;
+  aspect-ratio: 304 / 187;
+  border-radius: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -314,15 +344,16 @@ body {
   font-weight: 700;
   letter-spacing: 0.3px;
   color: #06120a;
-  margin-bottom: 6px;
+  background: var(--kvn-bg-card-inner);
+  margin-bottom: 8px;
 }
 
 .kvn-asset-thumb-video { background: #6bffab; }
-.kvn-asset-thumb-audio { background: #39ff88; }
+.kvn-asset-thumb-audio { background: var(--kvn-bg-card-inner); color: var(--kvn-accent); }
 .kvn-asset-thumb-image { background: #a8ffcb; }
 .kvn-asset-thumb-mogrt { background: #8fffcf; }
 .kvn-asset-thumb-preset { background: #c8ffdf; }
-.kvn-asset-thumb-file { background: #7fae8f; }
+.kvn-asset-thumb-file { background: var(--kvn-bg-card-inner); color: var(--kvn-text-muted); }
 
 .kvn-asset-thumb-media {
   object-fit: cover;
@@ -332,13 +363,13 @@ body {
 .kvn-audio-thumb {
   display: block;
   width: 100%;
-  height: 70px;
-  border-radius: 4px;
+  aspect-ratio: 304 / 187;
+  border-radius: 2px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  background: #0c110d;
-  border: 1px solid var(--kvn-border);
+  background: var(--kvn-bg-card-inner);
+  margin-bottom: 8px;
 }
 
 .kvn-audio-waveform {
@@ -365,15 +396,10 @@ body {
 }
 
 .kvn-asset-name {
-  font-size: 10.5px;
+  font-size: 11px;
+  color: var(--kvn-text);
   word-break: break-word;
   line-height: 1.3;
-}
-
-.kvn-asset-ext {
-  font-size: 9px;
-  color: var(--kvn-text-muted);
-  margin-top: 2px;
 }
 
 .kvn-action-bar {
@@ -381,8 +407,9 @@ body {
   flex-direction: column;
   gap: 6px;
   padding: 8px 10px;
-  border-top: 1px solid var(--kvn-border);
-  background: var(--kvn-bg-elevated);
+  border-top: 2px solid var(--kvn-accent);
+  box-shadow: 0 -2px 10px 0 var(--kvn-accent-glow);
+  background: #000000;
   flex-shrink: 0;
 }
 
@@ -396,29 +423,33 @@ body {
 
 .kvn-action-buttons {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .kvn-action-buttons .kvn-primary-button {
   flex: 1;
-  padding: 7px 6px;
 }
 
-.kvn-primary-button {
+/* Pílula verde neon com texto preto em negrito, igual ao botão "Escolher
+   Biblioteca" do rascunho. */
+.kvn-primary-button,
+.kvn-secondary-button {
   background: var(--kvn-accent);
-  color: #06120a;
+  color: var(--kvn-accent-text);
   border: none;
-  border-radius: 4px;
-  padding: 7px 12px;
-  font-size: 11.5px;
-  font-weight: 600;
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
+  box-shadow: 0 0 12px 0 var(--kvn-accent-glow);
 }
 
-.kvn-primary-button:hover {
-  background: var(--kvn-accent-hover);
-  box-shadow: 0 0 8px rgba(57, 255, 136, 0.4);
+.kvn-primary-button:hover,
+.kvn-secondary-button:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 0 18px 2px var(--kvn-accent-glow);
 }
 
 .kvn-primary-button:disabled {
@@ -426,22 +457,6 @@ body {
   color: var(--kvn-text-muted);
   cursor: not-allowed;
   box-shadow: none;
-}
-
-.kvn-secondary-button {
-  background: transparent;
-  color: var(--kvn-accent-hover);
-  border: 1px solid var(--kvn-border);
-  border-radius: 4px;
-  padding: 6px 10px;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.kvn-secondary-button:hover {
-  background: var(--kvn-bg-card-hover);
-  color: var(--kvn-accent);
-  border-color: var(--kvn-accent-dim);
 }
 
 .kvn-onboarding {

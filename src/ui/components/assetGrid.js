@@ -156,17 +156,14 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
 
     const thumb = createThumb(asset, observer);
 
+    // O nome já inclui a extensão (ex.: "Arquivo1.wav") - sem badge
+    // separado, igual ao rascunho.
     const name = document.createElement("div");
     name.className = "kvn-asset-name";
     name.textContent = asset.name;
 
-    const ext = document.createElement("div");
-    ext.className = "kvn-asset-ext";
-    ext.textContent = asset.extension || "";
-
     card.appendChild(thumb);
     card.appendChild(name);
-    card.appendChild(ext);
 
     // Para áudio, clicar em qualquer lugar do card pré-escuta no Source
     // Monitor do Premiere - não só na tira da forma de onda (o usuário

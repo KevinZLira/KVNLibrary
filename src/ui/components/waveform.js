@@ -37,16 +37,33 @@ function drawGeneratedWaveform(canvas, seed) {
     return state / 0xffffffff;
   };
 
-  const barCount = 40;
-  const barWidth = width / barCount;
+  // Barras verticais em pílula com glow verde, espelhadas a partir do
+  // centro - reproduz o estilo de "espectro" do rascunho (barras
+  // arredondadas, não uma linha contínua de onda).
+  const barCount = 20;
+  const gap = 3;
+  const barWidth = Math.max(2, width / barCount - gap);
+  const radius = barWidth / 2;
   const mid = height / 2;
+  const color = "#7FF425";
 
-  ctx.fillStyle = "#5c9dff";
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 6;
+
   for (let i = 0; i < barCount; i++) {
     const amplitude = 0.15 + nextRandom() * 0.85;
-    const barHeight = Math.max(2, amplitude * height * 0.9);
-    const x = i * barWidth;
-    ctx.fillRect(x, mid - barHeight / 2, Math.max(1, barWidth - 1), barHeight);
+    const barHeight = Math.max(3, amplitude * height * 0.85);
+    const x = i * (barWidth + gap);
+    const y = mid - barHeight / 2;
+
+    ctx.beginPath();
+    if (typeof ctx.roundRect === "function") {
+      ctx.roundRect(x, y, barWidth, barHeight, radius);
+    } else {
+      ctx.rect(x, y, barWidth, barHeight);
+    }
+    ctx.fill();
   }
 }
 
