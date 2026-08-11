@@ -322,12 +322,16 @@ body {
 }
 
 .kvn-audio-player {
-  /* Escondido sem "display: none" - alguns motores de mídia suspendem a
-     decodificação de elementos com display none, o que impediria o áudio
-     de tocar mesmo com play() chamado. */
+  /* Escondido só com opacity (sem "display: none" nem tamanho 1x1) - o
+     motor de vídeo do UXP parece precisar de uma área de renderização
+     de verdade pra decodificar/tocar (os thumbs de vídeo, que são
+     visíveis e têm tamanho real, funcionam; esse aqui, escondido em
+     1x1px, não tocava mesmo sem erro). */
   position: absolute;
-  width: 1px;
-  height: 1px;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   opacity: 0;
   pointer-events: none;
 }
