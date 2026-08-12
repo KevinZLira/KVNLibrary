@@ -90,29 +90,38 @@ body {
   gap: 14px;
 }
 
-/* Círculo cinza sólido (não só no hover) do mesmo tamanho da pílula ao
-   lado, igual ao rascunho - não é um <button>, pelo mesmo motivo dos
-   botões de ação (ver comentário mais abaixo sobre o cinza nativo do
-   SO). */
+/* Círculo verde neon (não é um <button> - mesmo motivo dos botões de
+   ação, ver comentário mais abaixo sobre o cinza nativo do SO), mesmo
+   tratamento de glow em três camadas da pílula ao lado. */
 .kvn-icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #4a4a4a;
-  color: var(--kvn-text);
+  background-color: var(--kvn-accent);
+  background-image: linear-gradient(180deg, var(--kvn-accent-hover), var(--kvn-accent));
+  color: var(--kvn-accent-text);
   border-radius: 50%;
   width: 34px;
   height: 34px;
   cursor: pointer;
   font-size: 15px;
+  font-weight: 700;
   line-height: 1;
   user-select: none;
-  transition: background 0.15s ease;
+  box-shadow:
+    0 0 8px 1px rgba(127, 244, 37, 0.95),
+    0 0 26px 4px rgba(127, 244, 37, 0.65),
+    0 0 48px 10px rgba(127, 244, 37, 0.35);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .kvn-icon-button:hover {
-  background: #5c5c5c;
-  color: var(--kvn-accent);
+  background: var(--kvn-accent-hover);
+  box-shadow:
+    0 0 10px 2px rgba(151, 255, 92, 1),
+    0 0 34px 6px rgba(151, 255, 92, 0.7),
+    0 0 60px 14px rgba(127, 244, 37, 0.4);
+  transform: translateY(-1px);
 }
 
 .kvn-header-cta {
@@ -120,35 +129,6 @@ body {
   padding: 0 16px;
   font-size: 12px;
   border-radius: 17px;
-}
-
-.kvn-settings-info {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--kvn-border);
-  background: var(--kvn-bg-elevated);
-  flex-shrink: 0;
-}
-
-.kvn-settings-label {
-  margin: 0 0 2px 0;
-  color: var(--kvn-text-muted);
-  text-transform: uppercase;
-  font-size: 10px;
-  letter-spacing: 0.4px;
-}
-
-.kvn-settings-value {
-  margin: 0;
-  font-family: Consolas, "Courier New", monospace;
-  font-size: 11px;
-  word-break: break-all;
-  color: var(--kvn-text-muted);
-}
-
-.kvn-settings-info .kvn-project-status {
-  margin: 6px 0 0 0;
-  padding: 0;
-  border-bottom: none;
 }
 
 .kvn-project-status {

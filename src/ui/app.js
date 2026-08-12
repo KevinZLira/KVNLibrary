@@ -32,9 +32,6 @@ let categories = [];
 function cacheElements() {
   elements.title = document.getElementById("plugin-title");
   elements.refreshButton = document.getElementById("refresh-button");
-  elements.settingsButton = document.getElementById("settings-button");
-  elements.settingsInfo = document.getElementById("settings-info");
-  elements.libraryPath = document.getElementById("library-path");
   elements.projectStatus = document.getElementById("project-status");
   elements.statusBar = document.getElementById("status-bar");
   elements.noFolderView = document.getElementById("no-folder-view");
@@ -64,11 +61,8 @@ function getActiveFolder() {
   return navigationStack[navigationStack.length - 1] || null;
 }
 
-async function updateLibraryPathDisplay() {
+async function updateChooseFolderButtonLabel() {
   const folder = await libraryManager.getLibraryFolder();
-  elements.libraryPath.textContent = folder
-    ? folder.nativePath
-    : "Nenhuma pasta selecionada.";
 
   // Mesmo botão do header serve pra escolher a pasta a primeira vez e pra
   // trocar depois - só muda o texto conforme já existe uma pasta ou não.
@@ -210,15 +204,11 @@ async function handleChooseFolder() {
     // Usuário cancelou o seletor de pastas - nada muda.
     return;
   }
-  await updateLibraryPathDisplay();
+  await updateChooseFolderButtonLabel();
   navigationStack = [];
   selectedAsset = null;
   await refreshLibraryView();
   showStatus(elements.statusBar, "Biblioteca atualizada.", "success");
-}
-
-function toggleSettingsInfo() {
-  elements.settingsInfo.classList.toggle("kvn-hidden");
 }
 
 /**
@@ -247,7 +237,6 @@ async function init() {
   cacheElements();
 
   elements.refreshButton.addEventListener("click", handleRefresh);
-  elements.settingsButton.addEventListener("click", toggleSettingsInfo);
   elements.chooseFolderHeaderButton.addEventListener("click", handleChooseFolder);
   elements.importButton.addEventListener("click", () => {
     if (selectedAsset) {
@@ -261,7 +250,6 @@ async function init() {
   });
   [
     elements.refreshButton,
-    elements.settingsButton,
     elements.chooseFolderHeaderButton,
     elements.importButton,
     elements.insertButton,
@@ -270,7 +258,7 @@ async function init() {
   projectManager.onProjectActivated(updateProjectStatus);
   await updateProjectStatus();
 
-  await updateLibraryPathDisplay();
+  await updateChooseFolderButtonLabel();
   await refreshLibraryView();
 }
 
