@@ -63,7 +63,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 10px;
+  padding: 14px 16px;
   background: var(--kvn-bg-header);
   border-bottom: 2px solid var(--kvn-accent);
   box-shadow: 0 2px 10px 0 var(--kvn-accent-glow);
@@ -79,7 +79,7 @@ body {
 }
 
 .kvn-logo {
-  height: 26px;
+  height: 30px;
   width: auto;
   display: block;
 }
@@ -87,33 +87,39 @@ body {
 .kvn-header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 14px;
 }
 
+/* Círculo cinza sólido (não só no hover) do mesmo tamanho da pílula ao
+   lado, igual ao rascunho - não é um <button>, pelo mesmo motivo dos
+   botões de ação (ver comentário mais abaixo sobre o cinza nativo do
+   SO). */
 .kvn-icon-button {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--kvn-text-muted);
-  border-radius: 4px;
-  width: 24px;
-  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #4a4a4a;
+  color: var(--kvn-text);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1;
-  appearance: none;
-  -webkit-appearance: none;
+  user-select: none;
+  transition: background 0.15s ease;
 }
 
 .kvn-icon-button:hover {
-  background: var(--kvn-bg-card-hover);
+  background: #5c5c5c;
   color: var(--kvn-accent);
 }
 
 .kvn-header-cta {
-  height: 30px;
-  padding: 0 14px;
-  font-size: 11px;
-  border-radius: 15px;
+  height: 34px;
+  padding: 0 16px;
+  font-size: 12px;
+  border-radius: 17px;
 }
 
 .kvn-settings-info {
@@ -481,9 +487,14 @@ body {
   cursor: pointer;
   flex-shrink: 0;
   user-select: none;
+  /* Glow em três camadas (justa e bem forte, média, e larga e suave)
+     pra reproduzir o brilho grande e difuso do rascunho - o botão
+     "Escolher Biblioteca" lá tem um halo verde que se espalha bem além
+     da borda da pílula, não só um contorno fino. */
   box-shadow:
-    0 0 6px 0 rgba(127, 244, 37, 0.9),
-    0 0 22px 2px var(--kvn-accent-glow);
+    0 0 8px 1px rgba(127, 244, 37, 0.95),
+    0 0 26px 4px rgba(127, 244, 37, 0.65),
+    0 0 48px 10px rgba(127, 244, 37, 0.35);
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
@@ -491,8 +502,9 @@ body {
 .kvn-secondary-button:hover {
   background: var(--kvn-accent-hover);
   box-shadow:
-    0 0 8px 1px rgba(151, 255, 92, 0.95),
-    0 0 30px 4px var(--kvn-accent-glow);
+    0 0 10px 2px rgba(151, 255, 92, 1),
+    0 0 34px 6px rgba(151, 255, 92, 0.7),
+    0 0 60px 14px rgba(127, 244, 37, 0.4);
   transform: translateY(-1px);
 }
 

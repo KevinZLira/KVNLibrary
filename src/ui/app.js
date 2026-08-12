@@ -259,9 +259,13 @@ async function init() {
       handleInsertAsset(selectedAsset);
     }
   });
-  [elements.chooseFolderHeaderButton, elements.importButton, elements.insertButton].forEach(
-    makeKeyboardActivatable
-  );
+  [
+    elements.refreshButton,
+    elements.settingsButton,
+    elements.chooseFolderHeaderButton,
+    elements.importButton,
+    elements.insertButton,
+  ].forEach(makeKeyboardActivatable);
 
   projectManager.onProjectActivated(updateProjectStatus);
   await updateProjectStatus();
