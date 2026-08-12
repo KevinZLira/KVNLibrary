@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width" />
+    <link rel="stylesheet" href="src/ui/styles/theme.css" />
+    <script src="index.js"></script>
+  </head>
+  <body>
+    <div class="kvn-panel">
+      <header class="kvn-header">
+        <h1 id="plugin-title" class="kvn-title">
+          <img src="Logo.png" alt="KVN Library" class="kvn-logo" />
+        </h1>
+        <div class="kvn-header-actions">
+          <div
+            id="refresh-button"
+            class="kvn-icon-button"
+            role="button"
+            tabindex="0"
+            title="Refresh Library"
+            aria-label="Refresh Library"
+          >
+            &#8635;
+          </div>
+          <div id="choose-folder-header-button" class="kvn-primary-button kvn-header-cta" role="button" tabindex="0">
+            Selecionar Biblioteca
+          </div>
+        </div>
+      </header>
+
+      <p id="project-status" class="kvn-project-status"></p>
+
+      <div id="status-bar" class="kvn-status-bar kvn-hidden"></div>
+
+      <!-- View: nenhuma pasta de biblioteca escolhida ainda -->
+      <section id="no-folder-view" class="kvn-view kvn-hidden">
+        <div class="kvn-onboarding">
+          <p class="kvn-onboarding-text">
+            Clique em "Selecionar Biblioteca" no topo do painel e escolha a
+            pasta no seu computador onde ficam os seus assets (transições,
+            efeitos sonoros, overlays, presets etc.).
+          </p>
+        </div>
+      </section>
+
+      <!-- View: biblioteca - árvore de categorias na esquerda (sempre
+           visível) + grade dos arquivos da pasta ativa na direita -->
+      <section id="library-view" class="kvn-library-view kvn-hidden">
+        <aside id="library-tree" class="kvn-library-tree"></aside>
+        <div class="kvn-library-main">
+          <div id="assets-grid" class="kvn-assets-grid"></div>
+        </div>
+      </section>
+
+      <footer id="action-bar" class="kvn-action-bar kvn-hidden">
+        <span id="selected-asset-name" class="kvn-selected-asset-name"></span>
+        <div class="kvn-action-buttons">
+          <div id="import-button" class="kvn-primary-button" role="button" tabindex="0">
+            Importar
+          </div>
+          <div id="insert-button" class="kvn-primary-button" role="button" tabindex="0">
+            Inserir na Timeline
+          </div>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

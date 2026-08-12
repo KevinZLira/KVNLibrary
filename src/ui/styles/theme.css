@@ -1,0 +1,525 @@
+/**
+ * Paleta e medidas extraídas do export "Figma Make" (React/Tailwind) do
+ * rascunho enviado pelo usuário: fundo #1b1b1b (não preto puro - só o
+ * header, em #000, é preto de verdade), área da árvore+grade em #161616,
+ * blocos sólidos sem cantos arredondados na árvore, cards em dois tons
+ * (moldura + "tela" interna), separadores com glow verde neon e botões
+ * em pílula verde com texto preto.
+ *
+ * Evitados de propósito, por causarem artefatos visuais nesse webview do
+ * UXP (confirmado testando no painel real): `border-radius` muito grande
+ * (ex.: 999px pra pílula "perfeita") - clampado incorretamente e vaza o
+ * box-shadow em formato de losango pelos cantos; `aspect-ratio` - não
+ * dimensiona o elemento (thumbs somem, ficam com altura 0); `filter:
+ * brightness()` em :hover - trocado por cor de fundo explícita.
+ */
+
+:root {
+  --kvn-bg: #1b1b1b;
+  --kvn-bg-header: #000000;
+  --kvn-bg-surface: #161616;
+  --kvn-bg-elevated: #0d0d0d;
+  --kvn-bg-row: #1f1f1f;
+  --kvn-bg-row-hover: #2a2a2a;
+  --kvn-bg-row-file: #1c1c1c;
+  --kvn-bg-row-file-hover: #262626;
+  --kvn-bg-card: #2a2a2a;
+  --kvn-bg-card-inner: #232323;
+  --kvn-bg-card-hover: #323232;
+  --kvn-border: #2a2a2a;
+  --kvn-text: #ffffff;
+  --kvn-text-muted: #8a8a8a;
+  --kvn-accent: #7ff425;
+  --kvn-accent-hover: #97ff5c;
+  --kvn-accent-text: #000000;
+  --kvn-accent-glow: rgba(127, 244, 37, 0.55);
+  --kvn-error: #ff5d5d;
+  --kvn-success: #7ff425;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--kvn-bg);
+  color: var(--kvn-text);
+  font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+}
+
+.kvn-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--kvn-bg);
+}
+
+.kvn-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--kvn-bg-header);
+  border-bottom: 2px solid var(--kvn-accent);
+  box-shadow: 0 2px 10px 0 var(--kvn-accent-glow);
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.kvn-title {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.kvn-logo {
+  height: 30px;
+  width: auto;
+  display: block;
+}
+
+.kvn-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Círculo verde neon (não é um <button> - mesmo motivo dos botões de
+   ação, ver comentário mais abaixo sobre o cinza nativo do SO), mesmo
+   tratamento de glow em três camadas da pílula ao lado. */
+.kvn-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--kvn-accent);
+  background-image: linear-gradient(180deg, var(--kvn-accent-hover), var(--kvn-accent));
+  color: var(--kvn-accent-text);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+  box-shadow:
+    0 0 8px 1px rgba(127, 244, 37, 0.95),
+    0 0 26px 4px rgba(127, 244, 37, 0.65),
+    0 0 48px 10px rgba(127, 244, 37, 0.35);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.kvn-icon-button:hover {
+  background: var(--kvn-accent-hover);
+  box-shadow:
+    0 0 10px 2px rgba(151, 255, 92, 1),
+    0 0 34px 6px rgba(151, 255, 92, 0.7),
+    0 0 60px 14px rgba(127, 244, 37, 0.4);
+  transform: translateY(-1px);
+}
+
+.kvn-header-cta {
+  height: 34px;
+  padding: 0 16px;
+  font-size: 12px;
+  border-radius: 17px;
+}
+
+.kvn-project-status {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 10.5px;
+  color: var(--kvn-text-muted);
+  border-bottom: 1px solid var(--kvn-border);
+  flex-shrink: 0;
+}
+
+.kvn-status-bar {
+  padding: 8px 10px;
+  font-size: 11px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--kvn-border);
+}
+
+.kvn-status-bar.kvn-status-error {
+  background: rgba(255, 93, 93, 0.15);
+  color: var(--kvn-error);
+}
+
+.kvn-status-bar.kvn-status-info {
+  background: rgba(127, 244, 37, 0.1);
+  color: var(--kvn-accent);
+}
+
+.kvn-status-bar.kvn-status-success {
+  background: rgba(127, 244, 37, 0.14);
+  color: var(--kvn-success);
+}
+
+.kvn-hidden {
+  display: none !important;
+}
+
+.kvn-view {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 8px 10px 12px 10px;
+}
+
+.kvn-empty-state {
+  color: var(--kvn-text-muted);
+  font-size: 11.5px;
+  padding: 16px 4px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Biblioteca: árvore fixa na esquerda + grade responsiva na direita,
+   sempre visíveis lado a lado. Divisor entre as duas colunas com glow
+   verde, igual às linhas do rascunho. */
+.kvn-library-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  background: var(--kvn-bg-surface);
+}
+
+.kvn-library-tree {
+  flex: 0 0 150px;
+  min-width: 90px;
+  max-width: 45%;
+  overflow-y: auto;
+  background: var(--kvn-bg-surface);
+  border-right: 2px solid var(--kvn-accent);
+  box-shadow: 2px 0 10px 0 var(--kvn-accent-glow);
+}
+
+.kvn-library-tree::-webkit-scrollbar,
+.kvn-library-main::-webkit-scrollbar {
+  width: 7px;
+}
+
+.kvn-library-tree::-webkit-scrollbar-track,
+.kvn-library-main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kvn-library-tree::-webkit-scrollbar-thumb,
+.kvn-library-main::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 9px;
+}
+
+.kvn-library-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+/* Blocos sólidos, sem cantos arredondados, com o ícone de pasta real do
+   rascunho (Icone.png) + chevron + nome. Pasta e arquivo usam tons de
+   fundo diferentes (não por profundidade, por tipo de linha). */
+.kvn-tree-folder-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 8px 9px calc(8px + var(--kvn-depth, 0) * 12px);
+  cursor: pointer;
+  background: var(--kvn-bg-row);
+  color: var(--kvn-text);
+  border-left: 3px solid transparent;
+}
+
+.kvn-tree-folder-row:hover {
+  background: var(--kvn-bg-row-hover);
+}
+
+.kvn-tree-folder-row.kvn-tree-active {
+  border-left-color: var(--kvn-accent);
+}
+
+.kvn-tree-chevron {
+  width: 10px;
+  flex-shrink: 0;
+  font-size: 11px;
+  text-align: center;
+  color: var(--kvn-text);
+}
+
+.kvn-tree-folder-icon {
+  width: 14px;
+  height: 12px;
+  flex-shrink: 0;
+  background-image: url("../../../Icone.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.kvn-tree-folder-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+}
+
+.kvn-tree-file-row {
+  padding: 8px 8px 8px calc(22px + var(--kvn-depth, 0) * 12px);
+  cursor: pointer;
+  background: var(--kvn-bg-row-file);
+  color: var(--kvn-text);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-left: 3px solid transparent;
+}
+
+.kvn-tree-file-row:hover {
+  background: var(--kvn-bg-row-file-hover);
+}
+
+.kvn-tree-file-row.kvn-tree-active {
+  border-left-color: var(--kvn-accent);
+  color: var(--kvn-accent);
+}
+
+.kvn-assets-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Largura fixa em px (em vez de percentual) - assim o número de colunas
+   se adapta sozinho à largura disponível, sem precisar de CSS grid (que
+   se mostrou quebrado nesse webview do UXP). Cantos retos (border-radius:
+   0), igual aos blocos do rascunho - lá nenhum "Rectangle" de card tem
+   cantos arredondados. */
+.kvn-asset-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex: 0 1 150px;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: var(--kvn-bg-card);
+  border-radius: 0;
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.kvn-asset-card:hover {
+  background: var(--kvn-bg-card-hover);
+}
+
+.kvn-asset-card.kvn-asset-selected {
+  box-shadow: 0 0 0 2px var(--kvn-accent), 0 0 10px 0 var(--kvn-accent-glow);
+}
+
+/* Frame com a proporção da "tela" travada em 304:187 (a mesma do
+   rascunho), via padding-top percentual - técnica clássica que trava a
+   proporção respondendo à largura real do card, sem depender da
+   propriedade aspect-ratio (que não dimensiona o elemento nesse webview
+   do UXP - o thumb sumia por completo). */
+.kvn-asset-thumb-frame {
+  position: relative;
+  width: 100%;
+  padding-top: 61.51%;
+  margin-bottom: 6px;
+}
+
+/* "Tela" interna do card (moldura #2A2A2A + tela #232323, igual ao
+   rascunho) - preenche o frame acima, cantos retos. */
+.kvn-asset-thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #06120a;
+  background: var(--kvn-bg-card-inner);
+}
+
+.kvn-asset-thumb-video { background: #6bffab; }
+.kvn-asset-thumb-audio { background: var(--kvn-bg-card-inner); color: var(--kvn-accent); }
+.kvn-asset-thumb-image { background: #a8ffcb; }
+.kvn-asset-thumb-mogrt { background: #8fffcf; }
+.kvn-asset-thumb-preset { background: #c8ffdf; }
+.kvn-asset-thumb-file { background: var(--kvn-bg-card-inner); color: var(--kvn-text-muted); }
+
+.kvn-asset-thumb-media {
+  object-fit: cover;
+  background: #000000;
+}
+
+.kvn-audio-thumb {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  cursor: pointer;
+  overflow: hidden;
+  background: var(--kvn-bg-card-inner);
+}
+
+.kvn-audio-waveform {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.kvn-audio-thumb-play {
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--kvn-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  pointer-events: none;
+}
+
+.kvn-asset-name {
+  font-size: 11px;
+  color: var(--kvn-text);
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+.kvn-action-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-top: 2px solid var(--kvn-accent);
+  box-shadow: 0 -2px 10px 0 var(--kvn-accent-glow);
+  background: var(--kvn-bg-header);
+  flex-shrink: 0;
+}
+
+.kvn-selected-asset-name {
+  font-size: 11px;
+  color: var(--kvn-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kvn-action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.kvn-action-buttons .kvn-primary-button {
+  flex: 1;
+}
+
+/* Pílula verde neon com texto preto em negrito, igual ao botão "Escolher
+   Biblioteca" do rascunho. Altura fixa (38px) + raio = metade exata da
+   altura (19px) - matematicamente a MESMA forma de pílula 100% redonda
+   do rascunho.
+   Esses três (Selecionar/Trocar Biblioteca, Importar, Inserir na
+   Timeline) são <div role="button">, não <button> - depois de três
+   tentativas diferentes de CSS (raio, gradiente, background-color
+   sólido) o botão continuava renderizando cinza nesse webview do UXP,
+   ou seja, o problema nunca foi a regra CSS em si: é o <button> nativo
+   recebendo estilo do SO por cima que nem appearance:none tira nesse
+   ambiente. Um <div> não tem esse widget nativo pra brigar com o CSS. */
+.kvn-primary-button,
+.kvn-secondary-button {
+  background-color: var(--kvn-accent);
+  background-image: linear-gradient(180deg, var(--kvn-accent-hover), var(--kvn-accent));
+  color: var(--kvn-accent-text);
+  border: none;
+  height: 38px;
+  border-radius: 19px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+  /* Glow em três camadas (justa e bem forte, média, e larga e suave)
+     pra reproduzir o brilho grande e difuso do rascunho - o botão
+     "Escolher Biblioteca" lá tem um halo verde que se espalha bem além
+     da borda da pílula, não só um contorno fino. */
+  box-shadow:
+    0 0 8px 1px rgba(127, 244, 37, 0.95),
+    0 0 26px 4px rgba(127, 244, 37, 0.65),
+    0 0 48px 10px rgba(127, 244, 37, 0.35);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.kvn-primary-button:hover,
+.kvn-secondary-button:hover {
+  background: var(--kvn-accent-hover);
+  box-shadow:
+    0 0 10px 2px rgba(151, 255, 92, 1),
+    0 0 34px 6px rgba(151, 255, 92, 0.7),
+    0 0 60px 14px rgba(127, 244, 37, 0.4);
+  transform: translateY(-1px);
+}
+
+.kvn-primary-button:active,
+.kvn-secondary-button:active {
+  transform: translateY(0);
+}
+
+/* Substitui :disabled (pseudo-classe de <button>, não existe em <div>) -
+   pointer-events:none bloqueia o clique de verdade, igual a um <button>
+   desabilitado de verdade bloquearia. */
+.kvn-primary-button.kvn-btn-disabled {
+  background: var(--kvn-border);
+  background-image: none;
+  color: var(--kvn-text-muted);
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none;
+  transform: none;
+}
+
+.kvn-onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+  padding: 32px 12px;
+  height: 100%;
+}
+
+.kvn-onboarding-text {
+  color: var(--kvn-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 240px;
+}
