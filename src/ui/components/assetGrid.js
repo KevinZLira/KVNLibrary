@@ -158,13 +158,23 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
 
     const thumb = createThumb(asset, observer);
 
+    // Proporção da "tela" travada em 304:187 (a mesma do rascunho) via
+    // padding-top percentual - técnica clássica que funciona em
+    // qualquer engine, ao contrário de aspect-ratio (que não dimensiona
+    // o elemento nesse webview do UXP e fazia o thumb sumir por
+    // completo). O elemento real do thumb fica absolute, preenchendo
+    // esse frame.
+    const thumbFrame = document.createElement("div");
+    thumbFrame.className = "kvn-asset-thumb-frame";
+    thumbFrame.appendChild(thumb);
+
     // O nome já inclui a extensão (ex.: "Arquivo1.wav") - sem badge
     // separado, igual ao rascunho.
     const name = document.createElement("div");
     name.className = "kvn-asset-name";
     name.textContent = asset.name;
 
-    card.appendChild(thumb);
+    card.appendChild(thumbFrame);
     card.appendChild(name);
 
     // Para áudio, clicar em qualquer lugar do card pré-escuta no Source

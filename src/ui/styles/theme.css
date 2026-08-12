@@ -110,8 +110,10 @@ body {
 }
 
 .kvn-header-cta {
-  padding: 6px 14px;
+  height: 30px;
+  padding: 0 14px;
   font-size: 11px;
+  border-radius: 15px;
 }
 
 .kvn-settings-info {
@@ -313,7 +315,9 @@ body {
 
 /* Largura fixa em px (em vez de percentual) - assim o número de colunas
    se adapta sozinho à largura disponível, sem precisar de CSS grid (que
-   se mostrou quebrado nesse webview do UXP). */
+   se mostrou quebrado nesse webview do UXP). Cantos retos (border-radius:
+   0), igual aos blocos do rascunho - lá nenhum "Rectangle" de card tem
+   cantos arredondados. */
 .kvn-asset-card {
   display: flex;
   flex-direction: column;
@@ -322,8 +326,8 @@ body {
   max-width: 100%;
   box-sizing: border-box;
   background: var(--kvn-bg-card);
-  border-radius: 3px;
-  padding: 10px;
+  border-radius: 0;
+  padding: 12px;
   cursor: pointer;
   text-align: left;
 }
@@ -336,13 +340,26 @@ body {
   box-shadow: 0 0 0 2px var(--kvn-accent), 0 0 10px 0 var(--kvn-accent-glow);
 }
 
-/* "Tela" interna do card (moldura #2A2A2A + tela #232323, igual ao
-   rascunho). Altura fixa em px em vez de aspect-ratio (que não
-   dimensiona o elemento nesse webview - o thumb some por completo). */
-.kvn-asset-thumb {
+/* Frame com a proporção da "tela" travada em 304:187 (a mesma do
+   rascunho), via padding-top percentual - técnica clássica que trava a
+   proporção respondendo à largura real do card, sem depender da
+   propriedade aspect-ratio (que não dimensiona o elemento nesse webview
+   do UXP - o thumb sumia por completo). */
+.kvn-asset-thumb-frame {
+  position: relative;
   width: 100%;
-  height: 92px;
-  border-radius: 2px;
+  padding-top: 61.51%;
+  margin-bottom: 6px;
+}
+
+/* "Tela" interna do card (moldura #2A2A2A + tela #232323, igual ao
+   rascunho) - preenche o frame acima, cantos retos. */
+.kvn-asset-thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -351,7 +368,6 @@ body {
   letter-spacing: 0.3px;
   color: #06120a;
   background: var(--kvn-bg-card-inner);
-  margin-bottom: 8px;
 }
 
 .kvn-asset-thumb-video { background: #6bffab; }
@@ -368,14 +384,14 @@ body {
 
 .kvn-audio-thumb {
   display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: 92px;
-  border-radius: 2px;
+  height: 100%;
+  border-radius: 0;
   cursor: pointer;
-  position: relative;
   overflow: hidden;
   background: var(--kvn-bg-card-inner);
-  margin-bottom: 8px;
 }
 
 .kvn-audio-waveform {
@@ -437,11 +453,13 @@ body {
 }
 
 /* Pílula verde neon com texto preto em negrito, igual ao botão "Escolher
-   Biblioteca" do rascunho. Raio fixo (não 999px) - um raio maior que a
-   metade da altura do botão é clampado errado nesse webview e vaza o
-   box-shadow em formato de losango pelos cantos. appearance:none evita
-   que o Chromium embutido desenhe o botão nativo do SO por cima (o que
-   também causava esse artefato).
+   Biblioteca" do rascunho. Altura fixa (38px) + raio = metade exata da
+   altura (19px) - matematicamente a MESMA forma de pílula 100% redonda
+   do rascunho (um raio arbitrariamente maior, tipo 999px, não fica mais
+   redondo que isso, só quebra nesse webview: vaza o box-shadow em
+   formato de losango pelos cantos). appearance:none evita que o
+   Chromium embutido desenhe o botão nativo do SO por cima (o que também
+   causava esse artefato).
    Glow em duas camadas (uma justa e forte + uma larga e suave) pra
    reproduzir o efeito do rascunho (lá era literalmente um retângulo
    borrado atrás da pílula sólida). */
@@ -455,8 +473,12 @@ body {
   background-image: linear-gradient(180deg, var(--kvn-accent-hover), var(--kvn-accent));
   color: var(--kvn-accent-text);
   border: none;
-  border-radius: 20px;
-  padding: 9px 16px;
+  height: 38px;
+  border-radius: 19px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.2px;
