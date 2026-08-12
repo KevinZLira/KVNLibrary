@@ -168,26 +168,26 @@ async function handlePreviewAsset(asset) {
 }
 
 async function handleImportAsset(asset) {
-  elements.importButton.disabled = true;
+  elements.importButton.classList.add("kvn-btn-disabled");
   try {
     await importManager.importAsset(asset);
     showStatus(elements.statusBar, `"${asset.name}" importado para o Project Panel.`, "success");
   } catch (error) {
     showStatus(elements.statusBar, error.message, "error");
   } finally {
-    elements.importButton.disabled = false;
+    elements.importButton.classList.remove("kvn-btn-disabled");
   }
 }
 
 async function handleInsertAsset(asset) {
-  elements.insertButton.disabled = true;
+  elements.insertButton.classList.add("kvn-btn-disabled");
   try {
     await timelineManager.insertAssetAtPlayhead(asset);
     showStatus(elements.statusBar, `"${asset.name}" inserido na timeline.`, "success");
   } catch (error) {
     showStatus(elements.statusBar, error.message, "error");
   } finally {
-    elements.insertButton.disabled = false;
+    elements.insertButton.classList.remove("kvn-btn-disabled");
   }
 }
 
@@ -221,6 +221,21 @@ function toggleSettingsInfo() {
   elements.settingsInfo.classList.toggle("kvn-hidden");
 }
 
+/**
+ * "Selecionar/Trocar Biblioteca", Importar e Inserir na Timeline são
+ * <div role="button"> (não <button> - ver comentário no CSS sobre o
+ * botão nativo renderizando cinza nesse webview), então não ganham
+ * ativação por teclado de graça como um <button> ganharia.
+ */
+function makeKeyboardActivatable(element) {
+  element.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      element.click();
+    }
+  });
+}
+
 async function updateProjectStatus() {
   const project = await projectManager.getActiveProject();
   elements.projectStatus.textContent = project
@@ -244,6 +259,9 @@ async function init() {
       handleInsertAsset(selectedAsset);
     }
   });
+  [elements.chooseFolderHeaderButton, elements.importButton, elements.insertButton].forEach(
+    makeKeyboardActivatable
+  );
 
   projectManager.onProjectActivated(updateProjectStatus);
   await updateProjectStatus();

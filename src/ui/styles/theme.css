@@ -455,20 +455,16 @@ body {
 /* Pílula verde neon com texto preto em negrito, igual ao botão "Escolher
    Biblioteca" do rascunho. Altura fixa (38px) + raio = metade exata da
    altura (19px) - matematicamente a MESMA forma de pílula 100% redonda
-   do rascunho (um raio arbitrariamente maior, tipo 999px, não fica mais
-   redondo que isso, só quebra nesse webview: vaza o box-shadow em
-   formato de losango pelos cantos). appearance:none evita que o
-   Chromium embutido desenhe o botão nativo do SO por cima (o que também
-   causava esse artefato).
-   Glow em duas camadas (uma justa e forte + uma larga e suave) pra
-   reproduzir o efeito do rascunho (lá era literalmente um retângulo
-   borrado atrás da pílula sólida). */
+   do rascunho.
+   Esses três (Selecionar/Trocar Biblioteca, Importar, Inserir na
+   Timeline) são <div role="button">, não <button> - depois de três
+   tentativas diferentes de CSS (raio, gradiente, background-color
+   sólido) o botão continuava renderizando cinza nesse webview do UXP,
+   ou seja, o problema nunca foi a regra CSS em si: é o <button> nativo
+   recebendo estilo do SO por cima que nem appearance:none tira nesse
+   ambiente. Um <div> não tem esse widget nativo pra brigar com o CSS. */
 .kvn-primary-button,
 .kvn-secondary-button {
-  /* background-color sólido de base + gradiente por cima em camada
-     separada - se o linear-gradient não for aceito nesse webview, o
-     verde sólido continua garantido em vez de cair pro cinza padrão do
-     botão nativo do SO. */
   background-color: var(--kvn-accent);
   background-image: linear-gradient(180deg, var(--kvn-accent-hover), var(--kvn-accent));
   color: var(--kvn-accent-text);
@@ -484,11 +480,10 @@ body {
   letter-spacing: 0.2px;
   cursor: pointer;
   flex-shrink: 0;
+  user-select: none;
   box-shadow:
     0 0 6px 0 rgba(127, 244, 37, 0.9),
     0 0 22px 2px var(--kvn-accent-glow);
-  appearance: none;
-  -webkit-appearance: none;
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
@@ -506,10 +501,15 @@ body {
   transform: translateY(0);
 }
 
-.kvn-primary-button:disabled {
+/* Substitui :disabled (pseudo-classe de <button>, não existe em <div>) -
+   pointer-events:none bloqueia o clique de verdade, igual a um <button>
+   desabilitado de verdade bloquearia. */
+.kvn-primary-button.kvn-btn-disabled {
   background: var(--kvn-border);
+  background-image: none;
   color: var(--kvn-text-muted);
   cursor: not-allowed;
+  pointer-events: none;
   box-shadow: none;
   transform: none;
 }
