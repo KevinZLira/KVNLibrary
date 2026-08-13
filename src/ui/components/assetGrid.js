@@ -71,20 +71,17 @@ function createVideoThumb(asset, observer) {
   video.muted = true;
   video.addEventListener("loadedmetadata", () => {
     console.log(`[KVN] video metadata carregada - "${asset.name}" duration=${video.duration}`);
-    // preload="metadata" normalmente só traz duração/dimensões, sem
-    // decodificar nenhum frame de verdade - forçar um seek pequeno
-    // obriga o navegador a decodificar e pintar aquele frame (técnica
-    // padrão pra gerar thumbnail de vídeo).
-    try {
-      video.currentTime = Math.min(0.1, video.duration || 0.1);
-    } catch (error) {
-      console.error(`[KVN] video seek erro - "${asset.name}"`, error);
-    }
   });
-  video.addEventListener("seeked", () => {
+  // loadeddata = o frame na posição atual (0, já que não tocamos nem
+  // damos seek) está de fato decodificado e pronto pra pintura - mais
+  // confiável que loadedmetadata (só duração/dimensões) pra saber se um
+  // frame real vai aparecer. currentTime/seeked foi testado e não
+  // funciona nesse motor de vídeo restrito (nem erro, nem o evento
+  // "seeked" disparava).
+  video.addEventListener("loadeddata", () => {
     const rect = video.getBoundingClientRect();
     console.log(
-      `[KVN] video seeked - "${asset.name}" videoSize=${video.videoWidth}x${video.videoHeight} rect=${rect.width.toFixed(1)}x${rect.height.toFixed(1)}`
+      `[KVN] video loadeddata - "${asset.name}" videoSize=${video.videoWidth}x${video.videoHeight} rect=${rect.width.toFixed(1)}x${rect.height.toFixed(1)}`
     );
   });
   video.addEventListener("error", (event) => {
@@ -93,7 +90,12 @@ function createVideoThumb(asset, observer) {
   });
   video.kvnLoad = () => {
     console.log(`[KVN] kvnLoad (video) - "${asset.name}" url=${asset.url}`);
-    video.preload = "metadata";
+    // preload="auto" (não "metadata") - testado: com "metadata" a
+    // duração/dimensões chegavam mas nenhum frame real era decodificado
+    // (nem um seek explícito conseguia forçar isso). "auto" pede pro
+    // motor carregar o suficiente pra realmente decodificar o primeiro
+    // frame, não só ler o cabeçalho do arquivo.
+    video.preload = "auto";
     video.src = asset.url;
   };
   observer.observe(video);
