@@ -51,7 +51,7 @@
   --kvn-accent: #7ff425;
   --kvn-accent-hover: #97ff5c;
   --kvn-accent-text: #000000;
-  --kvn-accent-glow: rgba(127, 244, 37, 0.55);
+  --kvn-accent-glow: rgba(127, 244, 37, 0.8);
   --kvn-scrollbar: #d9d9d9;
   --kvn-error: #ff5d5d;
   --kvn-success: #7ff425;
@@ -237,7 +237,7 @@ body {
   padding: 0 var(--kvn-header-pad-r) 0 var(--kvn-header-pad-l);
   background: var(--kvn-bg-header);
   border-bottom: 2px solid var(--kvn-accent);
-  box-shadow: 0 2px 10px 0 var(--kvn-accent-glow);
+  box-shadow: 0 2px 6px 0 var(--kvn-accent), 0 4px 22px 2px var(--kvn-accent-glow);
   flex-shrink: 0;
 }
 
@@ -300,18 +300,18 @@ body {
   line-height: 1;
   user-select: none;
   box-shadow:
-    0 0 8px 1px rgba(127, 244, 37, 0.95),
-    0 0 26px 4px rgba(127, 244, 37, 0.65),
-    0 0 48px 10px rgba(127, 244, 37, 0.35);
+    0 0 16px 4px rgba(127, 244, 37, 1),
+    0 0 38px 10px rgba(127, 244, 37, 0.85),
+    0 0 70px 20px rgba(127, 244, 37, 0.55);
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .kvn-icon-button:hover {
   background-color: var(--kvn-accent-hover);
   box-shadow:
-    0 0 10px 2px rgba(151, 255, 92, 1),
-    0 0 34px 6px rgba(151, 255, 92, 0.7),
-    0 0 60px 14px rgba(127, 244, 37, 0.4);
+    0 0 18px 5px rgba(151, 255, 92, 1),
+    0 0 46px 12px rgba(151, 255, 92, 0.9),
+    0 0 84px 24px rgba(127, 244, 37, 0.6);
   transform: translateY(-1px);
 }
 
@@ -391,7 +391,7 @@ body {
   overflow-y: auto;
   background: var(--kvn-bg-surface);
   border-right: 2px solid var(--kvn-accent);
-  box-shadow: 2px 0 10px 0 var(--kvn-accent-glow);
+  box-shadow: 2px 0 6px 0 var(--kvn-accent), 4px 0 22px 2px var(--kvn-accent-glow);
 }
 
 /* Barra de rolagem: cantos 9px, #d9d9d9 (node 7:555/556) - a altura real
@@ -535,7 +535,7 @@ body {
 }
 
 .kvn-asset-card.kvn-asset-selected {
-  box-shadow: 0 0 0 2px var(--kvn-accent), 0 0 10px 0 var(--kvn-accent-glow);
+  box-shadow: 0 0 0 2px var(--kvn-accent), 0 0 24px 4px var(--kvn-accent-glow);
 }
 
 /* Frame com a proporção da "tela" travada em 304:187 (node 7:587), via
@@ -631,7 +631,7 @@ body {
   gap: 6px;
   padding: 8px 10px;
   border-top: 2px solid var(--kvn-accent);
-  box-shadow: 0 -2px 10px 0 var(--kvn-accent-glow);
+  box-shadow: 0 -2px 6px 0 var(--kvn-accent), 0 -4px 22px 2px var(--kvn-accent-glow);
   background: var(--kvn-bg-header);
   flex-shrink: 0;
 }
@@ -684,9 +684,9 @@ body {
   user-select: none;
   white-space: nowrap;
   box-shadow:
-    0 0 8px 1px rgba(127, 244, 37, 0.95),
-    0 0 26px 4px rgba(127, 244, 37, 0.65),
-    0 0 48px 10px rgba(127, 244, 37, 0.35);
+    0 0 16px 4px rgba(127, 244, 37, 1),
+    0 0 38px 10px rgba(127, 244, 37, 0.85),
+    0 0 70px 20px rgba(127, 244, 37, 0.55);
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
@@ -694,9 +694,9 @@ body {
 .kvn-secondary-button:hover {
   background: var(--kvn-accent-hover);
   box-shadow:
-    0 0 10px 2px rgba(151, 255, 92, 1),
-    0 0 34px 6px rgba(151, 255, 92, 0.7),
-    0 0 60px 14px rgba(127, 244, 37, 0.4);
+    0 0 18px 5px rgba(151, 255, 92, 1),
+    0 0 46px 12px rgba(151, 255, 92, 0.9),
+    0 0 84px 24px rgba(127, 244, 37, 0.6);
   transform: translateY(-1px);
 }
 
