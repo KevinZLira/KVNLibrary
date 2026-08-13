@@ -276,6 +276,7 @@ body {
    sobrescrever de forma confiável (testado: três tentativas de CSS
    diferentes não resolveram até trocar o elemento). */
 .kvn-icon-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -299,19 +300,35 @@ body {
   cursor: pointer;
   line-height: 1;
   user-select: none;
-  box-shadow:
-    0 0 16px 4px rgba(127, 244, 37, 1),
-    0 0 38px 10px rgba(127, 244, 37, 0.85),
-    0 0 70px 20px rgba(127, 244, 37, 0.55);
+  box-shadow: 0 0 10px 2px rgba(127, 244, 37, 0.8);
   transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+/* Glow de verdade, copiado do Figma (node 17:895 - IconGlow.png, a
+   elipse borrada de propósito por trás do ícone sólido, node 17:890) -
+   em vez de tentar imitar o blur com box-shadow. No Figma essa camada é
+   131.4% do tamanho do ícone (54px vira 71px), centralizada. Um
+   background-image não dá pra estourar o próprio box do elemento
+   (fica sempre cortado nas bordas), por isso é um ::before absoluto e
+   maior, atrás do ícone (z-index -1). */
+.kvn-icon-button::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 131.4%;
+  height: 131.4%;
+  transform: translate(-50%, -50%);
+  background-image: url("../../../IconGlow.png");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: -1;
 }
 
 .kvn-icon-button:hover {
   background-color: var(--kvn-accent-hover);
-  box-shadow:
-    0 0 18px 5px rgba(151, 255, 92, 1),
-    0 0 46px 12px rgba(151, 255, 92, 0.9),
-    0 0 84px 24px rgba(127, 244, 37, 0.6);
+  box-shadow: 0 0 14px 4px rgba(151, 255, 92, 0.9);
   transform: translateY(-1px);
 }
 
@@ -659,13 +676,10 @@ body {
    tipo 999px, não fica mais redondo, só quebra nesse webview: vaza o
    box-shadow em formato de losango pelos cantos.
    É um <div role="button">, não <button> - mesmo motivo do ícone de
-   refresh acima.
-   Glow em três camadas (justa e forte, média, larga e suave) - o
-   rascunho tem duas elipses/retângulos (um borrado atrás, um sólido na
-   frente); o box-shadow reproduz o mesmo halo sem precisar de uma
-   segunda camada de elemento. */
+   refresh acima. */
 .kvn-primary-button,
 .kvn-secondary-button {
+  position: relative;
   background-color: var(--kvn-accent);
   background-image: linear-gradient(180deg, var(--kvn-accent-hover), var(--kvn-accent));
   color: var(--kvn-accent-text);
@@ -688,6 +702,39 @@ body {
     0 0 38px 10px rgba(127, 244, 37, 0.85),
     0 0 70px 20px rgba(127, 244, 37, 0.55);
   transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+/* Glow de verdade do botão "Selecionar/Trocar Biblioteca", copiado do
+   Figma (node 7:882 - ButtonGlow.png, a camada borrada por trás da
+   pílula sólida, node 7:883) - em vez de tentar imitar o blur com
+   box-shadow. No Figma essa camada é 110.64% da largura e 156.6% da
+   altura do botão (282x53 vira 312x83), centralizada. Só no botão do
+   header (não em Importar/Inserir, que têm largura variável - esticar
+   essa imagem pra larguras muito diferentes da original distorceria o
+   desenho do blur). Um background-image não dá pra estourar o próprio
+   box do elemento (fica sempre cortado nas bordas), por isso é um
+   ::before absoluto e maior, atrás da pílula (z-index -1). */
+#choose-folder-header-button::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 110.64%;
+  height: 156.6%;
+  transform: translate(-50%, -50%);
+  background-image: url("../../../ButtonGlow.png");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: -1;
+}
+
+#choose-folder-header-button {
+  box-shadow: 0 0 10px 2px rgba(127, 244, 37, 0.8);
+}
+
+#choose-folder-header-button:hover {
+  box-shadow: 0 0 14px 4px rgba(151, 255, 92, 0.9);
 }
 
 .kvn-primary-button:hover,
