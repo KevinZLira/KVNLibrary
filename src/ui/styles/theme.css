@@ -5,24 +5,32 @@
  *
  * Escala responsiva: o painel real do Premiere é bem mais estreito que
  * 1080px (mínimo 260px, preferido 320-340px no manifest.json) e
- * redimensionável pelo usuário - por isso cada medida crítica de layout
- * usa clamp(piso, Xvw, teto), onde Xvw é a MESMA proporção do Figma
- * (valor/1080*100) e o teto é o valor literal do Figma (nunca passa do
- * tamanho original numa janela larga; encolhe de verdade numa estreita).
- * Evitado de propósito: calc(100vw / 1080px) pra virar um fator de
- * escala único - divisão comprimento/comprimento em calc() é um recurso
- * mais novo de CSS, e esse webview do UXP já não suporta vários
- * recursos avançados (aspect-ratio, filter:brightness, border-radius
- * extremo) - clamp()+vw é uma aposta bem mais segura.
+ * redimensionável pelo usuário. A primeira tentativa usava
+ * clamp(piso, Xvw, teto) nas custom properties - quebrou tudo no painel
+ * real (ícones sumindo, fonte caindo pro tamanho herdado, botão
+ * encolhendo), confirmando que esse webview do UXP não lida bem com
+ * clamp()/vw dentro de custom properties (mesma categoria de bug já
+ * vista com aspect-ratio, filter:brightness e border-radius extremo -
+ * quando uma declaração CSS usa uma função não suportada, o var() que
+ * a referencia fica inválido e a propriedade volta pro valor padrão/
+ * herdado, em vez de simplesmente ignorar só aquela função).
+ *
+ * Substituído por algo bem mais simples e testado: cada medida crítica
+ * é uma custom property com um valor fixo em px, redefinida em três
+ * breakpoints via @media (min-width) - só media query + px puro, sem
+ * clamp()/vw/min()/max() em lugar nenhum. Os valores de cada breakpoint
+ * mantêm a MESMA proporção entre si que o Figma (canvas 1080x1080), só
+ * não interpolam continuamente - saltam em 3 degraus em vez de
+ * encolher pixel a pixel, troca aceitável por realmente funcionar.
  *
  * Também mantidos de propósito, por causarem artefatos visuais nesse
  * webview do UXP (confirmado testando no painel real): `border-radius`
  * muito grande (999px) - clampado incorretamente e vaza o box-shadow em
  * formato de losango pelos cantos, por isso os raios de pílula usam
- * calc(altura/2) (sempre exatamente redondo, em qualquer breakpoint) em
- * vez de um valor arbitrariamente maior; `aspect-ratio` - não dimensiona
- * o elemento (thumbs somem), por isso a proporção 304:187 do card usa
- * padding-top percentual.
+ * calc(altura/2) (calc() básico, sem clamp - sempre exatamente redondo,
+ * em qualquer breakpoint) em vez de um valor arbitrariamente maior;
+ * `aspect-ratio` - não dimensiona o elemento (thumbs somem), por isso a
+ * proporção 304:187 do card usa padding-top percentual.
  */
 
 :root {
@@ -48,42 +56,155 @@
   --kvn-error: #ff5d5d;
   --kvn-success: #7ff425;
 
-  /* Header (node 7:538/874/882/17:890). */
-  --kvn-header-h: clamp(44px, 12.870vw, 139px);
-  --kvn-header-pad-l: clamp(12px, 5.833vw, 63px);
-  --kvn-header-pad-r: clamp(10px, 5.278vw, 57px);
-  --kvn-logo-h: clamp(22px, 6.537vw, 70.6px);
-  --kvn-header-gap: clamp(8px, 3.333vw, 36px);
-  --kvn-icon-size: clamp(26px, 5vw, 54px);
+  /* Breakpoint 1 (padrão - painel dockado estreito, até 479px):
+     valores compactos, mesma proporção do Figma entre si. */
+  --kvn-header-h: 48px;
+  --kvn-header-pad-l: 16px;
+  --kvn-header-pad-r: 14px;
+  --kvn-logo-h: 26px;
+  --kvn-header-gap: 10px;
+  --kvn-icon-size: 30px;
 
-  /* Árvore (node 7:539 etc.) */
-  --kvn-tree-w: clamp(96px, 30.648vw, 331px);
-  --kvn-row-h: clamp(30px, 5.926vw, 64px);
-  --kvn-row-gap: clamp(2px, 0.463vw, 5px);
-  --kvn-row-font: clamp(10.5px, 2.389vw, 25.806px);
-  --kvn-row-pad-base: clamp(10px, 3.704vw, 40px);
-  --kvn-row-inline-gap: clamp(8px, 2.315vw, 25px);
-  --kvn-row-chevron-w: clamp(5px, 0.694vw, 7.5px);
-  --kvn-row-icon-w: clamp(15px, 3.611vw, 39px);
-  --kvn-row-icon-h: clamp(13px, 3.056vw, 33px);
-  --kvn-file-row-pad: clamp(24px, 10.093vw, 109px);
-  --kvn-scrollbar-w: clamp(6px, 1.204vw, 13px);
+  --kvn-tree-w: 130px;
+  --kvn-row-h: 34px;
+  --kvn-row-gap: 3px;
+  --kvn-row-font: 12px;
+  --kvn-row-pad-base: 12px;
+  --kvn-row-inline-gap: 8px;
+  --kvn-row-chevron-w: 8px;
+  --kvn-row-icon-w: 16px;
+  --kvn-row-icon-h: 14px;
+  --kvn-file-row-pad: 26px;
+  --kvn-scrollbar-w: 7px;
 
-  /* Grade de cards (node 7:584 etc.) */
-  --kvn-card-w: clamp(108px, 30.463vw, 329px);
-  --kvn-card-gap-x: clamp(6px, 1.389vw, 15px);
-  --kvn-card-gap-y: clamp(5px, 1.111vw, 12px);
-  --kvn-card-pad-t: clamp(5px, 1.111vw, 12px);
-  --kvn-card-pad-r: clamp(5px, 1.204vw, 13px);
-  --kvn-card-pad-b: clamp(4px, 0.741vw, 8px);
-  --kvn-card-pad-l: clamp(5px, 1.111vw, 12px);
-  --kvn-caption-font: clamp(9px, 1.079vw, 11.655px);
-  --kvn-thumb-gap: clamp(3px, 0.556vw, 6px);
+  --kvn-card-w: 140px;
+  --kvn-card-gap-x: 8px;
+  --kvn-card-gap-y: 8px;
+  --kvn-card-pad-t: 8px;
+  --kvn-card-pad-r: 8px;
+  --kvn-card-pad-b: 6px;
+  --kvn-card-pad-l: 8px;
+  --kvn-caption-font: 10px;
+  --kvn-thumb-gap: 5px;
 
-  /* Pílula verde (node 7:882/883/884). */
-  --kvn-btn-h: clamp(30px, 4.907vw, 53px);
-  --kvn-btn-pad-x: clamp(10px, 1.759vw, 19px);
-  --kvn-btn-font: clamp(11px, 2.389vw, 25.806px);
+  --kvn-btn-h: 34px;
+  --kvn-btn-pad-x: 12px;
+  --kvn-btn-font: 12px;
+}
+
+/* Breakpoint 2 (painel médio, 480-799px). */
+@media (min-width: 480px) {
+  :root {
+    --kvn-header-h: 72px;
+    --kvn-header-pad-l: 28px;
+    --kvn-header-pad-r: 24px;
+    --kvn-logo-h: 38px;
+    --kvn-header-gap: 16px;
+    --kvn-icon-size: 38px;
+
+    --kvn-tree-w: 200px;
+    --kvn-row-h: 44px;
+    --kvn-row-gap: 4px;
+    --kvn-row-font: 15px;
+    --kvn-row-pad-base: 20px;
+    --kvn-row-inline-gap: 14px;
+    --kvn-row-chevron-w: 6px;
+    --kvn-row-icon-w: 22px;
+    --kvn-row-icon-h: 19px;
+    --kvn-file-row-pad: 50px;
+    --kvn-scrollbar-w: 9px;
+
+    --kvn-card-w: 200px;
+    --kvn-card-gap-x: 10px;
+    --kvn-card-gap-y: 8px;
+    --kvn-card-pad-t: 9px;
+    --kvn-card-pad-r: 10px;
+    --kvn-card-pad-b: 6px;
+    --kvn-card-pad-l: 9px;
+    --kvn-caption-font: 10.5px;
+    --kvn-thumb-gap: 5px;
+
+    --kvn-btn-h: 40px;
+    --kvn-btn-pad-x: 14px;
+    --kvn-btn-font: 15px;
+  }
+}
+
+/* Breakpoint 3 (painel largo, 800-1079px). */
+@media (min-width: 800px) {
+  :root {
+    --kvn-header-h: 110px;
+    --kvn-header-pad-l: 50px;
+    --kvn-header-pad-r: 45px;
+    --kvn-logo-h: 56px;
+    --kvn-header-gap: 28px;
+    --kvn-icon-size: 44px;
+
+    --kvn-tree-w: 280px;
+    --kvn-row-h: 56px;
+    --kvn-row-gap: 4px;
+    --kvn-row-font: 21px;
+    --kvn-row-pad-base: 34px;
+    --kvn-row-inline-gap: 21px;
+    --kvn-row-chevron-w: 7px;
+    --kvn-row-icon-w: 33px;
+    --kvn-row-icon-h: 28px;
+    --kvn-file-row-pad: 92px;
+    --kvn-scrollbar-w: 11px;
+
+    --kvn-card-w: 280px;
+    --kvn-card-gap-x: 13px;
+    --kvn-card-gap-y: 10px;
+    --kvn-card-pad-t: 10px;
+    --kvn-card-pad-r: 11px;
+    --kvn-card-pad-b: 7px;
+    --kvn-card-pad-l: 10px;
+    --kvn-caption-font: 10.5px;
+    --kvn-thumb-gap: 5px;
+
+    --kvn-btn-h: 46px;
+    --kvn-btn-pad-x: 17px;
+    --kvn-btn-font: 22px;
+  }
+}
+
+/* Breakpoint 4 (painel flutuante bem largo, 1080px+): valores literais
+   do Figma, sem nenhum ajuste. */
+@media (min-width: 1080px) {
+  :root {
+    --kvn-header-h: 139px;
+    --kvn-header-pad-l: 63px;
+    --kvn-header-pad-r: 57px;
+    --kvn-logo-h: 70.6px;
+    --kvn-header-gap: 36px;
+    --kvn-icon-size: 54px;
+
+    --kvn-tree-w: 331px;
+    --kvn-row-h: 64px;
+    --kvn-row-gap: 5px;
+    --kvn-row-font: 25.806px;
+    --kvn-row-pad-base: 40px;
+    --kvn-row-inline-gap: 25px;
+    --kvn-row-chevron-w: 7.5px;
+    --kvn-row-icon-w: 39px;
+    --kvn-row-icon-h: 33px;
+    --kvn-file-row-pad: 109px;
+    --kvn-scrollbar-w: 13px;
+
+    --kvn-card-w: 329px;
+    --kvn-card-gap-x: 15px;
+    --kvn-card-gap-y: 12px;
+    --kvn-card-pad-t: 12px;
+    --kvn-card-pad-r: 13px;
+    --kvn-card-pad-b: 8px;
+    --kvn-card-pad-l: 12px;
+    --kvn-caption-font: 11.655px;
+    --kvn-thumb-gap: 6px;
+
+    --kvn-btn-h: 53px;
+    --kvn-btn-pad-x: 19px;
+    --kvn-btn-font: 25.806px;
+  }
 }
 
 * {
@@ -244,9 +365,10 @@ body {
    responsiva na direita, sempre visíveis lado a lado. Divisor entre as
    duas colunas com glow verde (node 7:551/552 - duas linhas, uma
    borrada atrás e uma sólida de 2px na frente).
-   A árvore usa flex-shrink:0 mas com --kvn-tree-w já sendo um clamp()
-   fluido (não um px fixo) - antes disso, com 331px fixos e sem encolher
-   nunca, ela sozinha estourava a largura inteira do painel real
+   A árvore usa flex-shrink:0 mas com --kvn-tree-w já variando por
+   breakpoint (não mais um único px fixo) - antes disso, com 331px fixos
+   e sem encolher nunca, ela sozinha estourava a largura inteira do
+   painel real
    (260-340px), empurrando a grade inteira pra fora da área visível: os
    cards tecnicamente existiam no DOM mas nunca "intersectavam" a área
    visível, e o IntersectionObserver do preview (assetGrid.js) nunca
