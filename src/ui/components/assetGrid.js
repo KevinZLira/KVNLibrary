@@ -47,10 +47,15 @@ function createImageThumb(asset, observer) {
   const img = document.createElement("img");
   img.className = "kvn-asset-thumb kvn-asset-thumb-media";
   img.alt = asset.name;
-  img.addEventListener("error", () => {
+  img.addEventListener("load", () => {
+    console.log(`[KVN] img carregada - "${asset.name}"`);
+  });
+  img.addEventListener("error", (event) => {
+    console.error(`[KVN] img erro - "${asset.name}" url=${asset.url}`, event);
     img.replaceWith(createBadgeThumb(asset));
   });
   img.kvnLoad = () => {
+    console.log(`[KVN] kvnLoad (img) - "${asset.name}" url=${asset.url}`);
     img.src = asset.url;
   };
   observer.observe(img);
@@ -61,10 +66,15 @@ function createVideoThumb(asset, observer) {
   const video = document.createElement("video");
   video.className = "kvn-asset-thumb kvn-asset-thumb-media";
   video.muted = true;
-  video.addEventListener("error", () => {
+  video.addEventListener("loadedmetadata", () => {
+    console.log(`[KVN] video metadata carregada - "${asset.name}"`);
+  });
+  video.addEventListener("error", (event) => {
+    console.error(`[KVN] video erro - "${asset.name}" url=${asset.url}`, event);
     video.replaceWith(createBadgeThumb(asset));
   });
   video.kvnLoad = () => {
+    console.log(`[KVN] kvnLoad (video) - "${asset.name}" url=${asset.url}`);
     video.preload = "metadata";
     video.src = asset.url;
   };
@@ -89,6 +99,7 @@ function createAudioThumb(asset, observer) {
   wrapper.appendChild(playIcon);
 
   wrapper.kvnLoad = () => {
+    console.log(`[KVN] kvnLoad (audio) - "${asset.name}"`);
     waveform.drawGeneratedWaveform(canvas, asset.name);
   };
   observer.observe(wrapper);
@@ -133,9 +144,15 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
   // thumbnail chegava a carregar). ".kvn-view" era a classe antiga, de
   // antes do redesign da árvore+grade - não existe mais como ancestral
   // da grade, então o observer estava silenciosamente sem root nenhum.
+  const observerRoot = container.closest(".kvn-library-main");
+  console.log(`[KVN] renderAssets - ${assets.length} asset(s), observerRoot=${observerRoot ? "achado" : "NULO"}`);
+
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
+        console.log(
+          `[KVN] observer entry - ${entry.target.tagName} isIntersecting=${entry.isIntersecting} ratio=${entry.intersectionRatio.toFixed(2)}`
+        );
         if (!entry.isIntersecting) {
           continue;
         }
@@ -145,7 +162,7 @@ function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImp
         observer.unobserve(entry.target);
       }
     },
-    { root: container.closest(".kvn-library-main"), rootMargin: LAZY_ROOT_MARGIN }
+    { root: observerRoot, rootMargin: LAZY_ROOT_MARGIN }
   );
 
   function appendCard(asset) {
