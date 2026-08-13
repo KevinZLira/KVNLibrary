@@ -259,7 +259,6 @@ body {
 .kvn-header-actions {
   display: flex;
   align-items: center;
-  gap: var(--kvn-header-gap);
   flex-shrink: 0;
 }
 
@@ -283,6 +282,11 @@ body {
   flex-shrink: 0;
   width: var(--kvn-icon-size);
   height: var(--kvn-icon-size);
+  /* margin em vez de gap no pai (.kvn-header-actions) - suspeita forte
+     de que gap em flexbox não funciona nesse webview do UXP (mesma
+     categoria de recurso "mais novo" que já vimos falhar: clamp(),
+     aspect-ratio, filter:brightness); margin é suportado desde sempre. */
+  margin-right: var(--kvn-header-gap);
   background-color: var(--kvn-accent);
   background-image:
     url("../../../RefreshIcon.svg"),
