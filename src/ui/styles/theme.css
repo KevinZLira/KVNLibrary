@@ -62,7 +62,7 @@
   --kvn-header-pad-l: 16px;
   --kvn-header-pad-r: 14px;
   --kvn-logo-h: 26px;
-  --kvn-header-gap: 10px;
+  --kvn-header-gap: 20px;
   --kvn-icon-size: 30px;
 
   --kvn-tree-w: 130px;
@@ -99,7 +99,7 @@
     --kvn-header-pad-l: 28px;
     --kvn-header-pad-r: 24px;
     --kvn-logo-h: 38px;
-    --kvn-header-gap: 16px;
+    --kvn-header-gap: 26px;
     --kvn-icon-size: 38px;
 
     --kvn-tree-w: 200px;
@@ -137,7 +137,7 @@
     --kvn-header-pad-l: 50px;
     --kvn-header-pad-r: 45px;
     --kvn-logo-h: 56px;
-    --kvn-header-gap: 28px;
+    --kvn-header-gap: 32px;
     --kvn-icon-size: 44px;
 
     --kvn-tree-w: 280px;
