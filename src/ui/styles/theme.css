@@ -595,8 +595,21 @@ body {
 .kvn-asset-thumb-preset { background: #c8ffdf; }
 .kvn-asset-thumb-file { background: var(--kvn-bg-card-inner); color: var(--kvn-text-muted); }
 
-.kvn-asset-thumb-media {
-  object-fit: cover;
+/* Vídeo/imagem: o <video>/<img> real fica escondido (1x1px, opacity:0 -
+   ver hideMediaSource() em assetGrid.js) e só serve de fonte pra
+   desenhar o frame decodificado num <canvas> via drawImage() - nesse
+   webview do UXP o <video>/<img> não pinta nada sozinho na tela mesmo
+   carregando com sucesso (confirmado: videoWidth/videoHeight corretos,
+   tela preta mesmo assim), mas canvas com desenho direto funciona (a
+   forma de onda de áudio usa a mesma técnica). */
+.kvn-asset-thumb-canvas-wrap {
+  overflow: hidden;
+}
+
+.kvn-asset-thumb-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
   background: #000000;
 }
 

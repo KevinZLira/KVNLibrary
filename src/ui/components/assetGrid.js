@@ -3,10 +3,15 @@
  * recebe dados prontos e callbacks de seleção/duplo clique/pré-escuta - a
  * chamada real de API do Premiere fica em src/premiere/previewManager.js.
  *
- * Preview real: usa Entry.url (concedido via seletor de pastas) diretamente
- * em <img>/<video>. Áudio ganha um padrão visual decorativo (ver
- * waveform.js - não é uma forma de onda real, o UXP não expõe Web Audio
- * API nem <audio>) e a pré-escuta é disparada no clique (via onPreviewAsset).
+ * Preview real: usa Entry.url (concedido via seletor de pastas) num
+ * <img>/<video> escondido (hideMediaSource) só como fonte de dados - o
+ * frame decodificado é desenhado num <canvas> visível via drawImage()
+ * (drawMediaFrameToCanvas). Nesse webview do UXP, <img>/<video> não
+ * pintam nada sozinhos mesmo carregando com sucesso, mas canvas
+ * desenhado direto funciona. Áudio ganha um padrão visual decorativo
+ * (ver waveform.js - não é uma forma de onda real, o UXP não expõe Web
+ * Audio API nem <audio>) e a pré-escuta é disparada no clique (via
+ * onPreviewAsset).
  *
  * Carregamento sob demanda: numa pasta com muitos arquivos, criar todos os
  * cards já disparando o carregamento de cada <img>/<video> ao mesmo tempo
@@ -43,63 +48,140 @@ function createBadgeThumb(asset) {
   return thumb;
 }
 
+// Fila global de carregamento de vídeo - só um vídeo decodifica por vez,
+// mesmo que vários cards fiquem visíveis ao mesmo tempo (ex.: rolar a
+// grade rápido faz o observer disparar 6+ kvnLoad quase juntos). Cada
+// vídeo com preload="auto" pode ser um clipe 4K pesado - decodificar
+// vários ao mesmo tempo é o suspeito nº1 do painel ficando instável
+// (ex.: a forma de onda de áudio parar de aparecer logo depois de
+// testar uma pasta cheia de vídeo 4K, sem nenhum código de áudio ter
+// mudado).
+const videoLoadQueue = [];
+let videoLoadInFlight = false;
+
+function processVideoQueue() {
+  if (videoLoadInFlight || videoLoadQueue.length === 0) {
+    return;
+  }
+  videoLoadInFlight = true;
+  const { video, url } = videoLoadQueue.shift();
+  const finish = () => {
+    videoLoadInFlight = false;
+    processVideoQueue();
+  };
+  video.addEventListener("loadeddata", finish, { once: true });
+  video.addEventListener("error", finish, { once: true });
+  video.preload = "auto";
+  video.src = url;
+}
+
+function enqueueVideoLoad(video, url) {
+  videoLoadQueue.push({ video, url });
+  processVideoQueue();
+}
+
+/**
+ * <img>/<video> sozinhos não pintam nada nesse webview do UXP mesmo
+ * carregando com sucesso (confirmado no painel real: "loadeddata"
+ * dispara com videoWidth/videoHeight corretos - o frame É decodificado
+ * internamente - mas a tela continua preta). Canvas com fillRect()
+ * comprovadamente funciona (a forma de onda de áudio aparece). Por
+ * isso o elemento de mídia real fica escondido, só usado como fonte
+ * pra desenhar o frame decodificado num canvas via drawImage() - o
+ * canvas é o que de fato aparece na tela.
+ */
+function drawMediaFrameToCanvas(source, canvas, assetName) {
+  try {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+    console.log(`[KVN] frame desenhado no canvas - "${assetName}"`);
+    return true;
+  } catch (error) {
+    console.error(`[KVN] drawImage erro - "${assetName}"`, error);
+    return false;
+  }
+}
+
+/**
+ * Esconde um <img>/<video> visualmente sem tirar ele do layout/DOM
+ * (nada de display:none) - em alguns engines display:none impede o
+ * elemento de sequer carregar/decodificar. position:absolute com
+ * 1x1px + opacity:0 tira ele do fluxo normal (o canvas irmão continua
+ * ocupando 100% do wrapper) sem arriscar isso.
+ */
+function hideMediaSource(el) {
+  el.style.position = "absolute";
+  el.style.width = "1px";
+  el.style.height = "1px";
+  el.style.opacity = "0";
+  el.style.pointerEvents = "none";
+}
+
 function createImageThumb(asset, observer) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "kvn-asset-thumb kvn-asset-thumb-canvas-wrap";
+
+  const canvas = document.createElement("canvas");
+  canvas.className = "kvn-asset-thumb-canvas";
+  canvas.width = 304;
+  canvas.height = 187;
+  wrapper.appendChild(canvas);
+
   const img = document.createElement("img");
-  img.className = "kvn-asset-thumb kvn-asset-thumb-media";
   img.alt = asset.name;
+  hideMediaSource(img);
+  wrapper.appendChild(img);
+
   img.addEventListener("load", () => {
-    const rect = img.getBoundingClientRect();
-    console.log(
-      `[KVN] img carregada - "${asset.name}" natural=${img.naturalWidth}x${img.naturalHeight} rect=${rect.width.toFixed(1)}x${rect.height.toFixed(1)}`
-    );
+    console.log(`[KVN] img carregada - "${asset.name}" natural=${img.naturalWidth}x${img.naturalHeight}`);
+    if (!drawMediaFrameToCanvas(img, canvas, asset.name)) {
+      wrapper.replaceWith(createBadgeThumb(asset));
+    }
   });
   img.addEventListener("error", (event) => {
     console.error(`[KVN] img erro - "${asset.name}" url=${asset.url}`, event);
-    img.replaceWith(createBadgeThumb(asset));
+    wrapper.replaceWith(createBadgeThumb(asset));
   });
-  img.kvnLoad = () => {
+  wrapper.kvnLoad = () => {
     console.log(`[KVN] kvnLoad (img) - "${asset.name}" url=${asset.url}`);
     img.src = asset.url;
   };
-  observer.observe(img);
-  return img;
+  observer.observe(wrapper);
+  return wrapper;
 }
 
 function createVideoThumb(asset, observer) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "kvn-asset-thumb kvn-asset-thumb-canvas-wrap";
+
+  const canvas = document.createElement("canvas");
+  canvas.className = "kvn-asset-thumb-canvas";
+  canvas.width = 304;
+  canvas.height = 187;
+  wrapper.appendChild(canvas);
+
   const video = document.createElement("video");
-  video.className = "kvn-asset-thumb kvn-asset-thumb-media";
   video.muted = true;
-  video.addEventListener("loadedmetadata", () => {
-    console.log(`[KVN] video metadata carregada - "${asset.name}" duration=${video.duration}`);
-  });
-  // loadeddata = o frame na posição atual (0, já que não tocamos nem
-  // damos seek) está de fato decodificado e pronto pra pintura - mais
-  // confiável que loadedmetadata (só duração/dimensões) pra saber se um
-  // frame real vai aparecer. currentTime/seeked foi testado e não
-  // funciona nesse motor de vídeo restrito (nem erro, nem o evento
-  // "seeked" disparava).
+  hideMediaSource(video);
+  wrapper.appendChild(video);
+
   video.addEventListener("loadeddata", () => {
-    const rect = video.getBoundingClientRect();
-    console.log(
-      `[KVN] video loadeddata - "${asset.name}" videoSize=${video.videoWidth}x${video.videoHeight} rect=${rect.width.toFixed(1)}x${rect.height.toFixed(1)}`
-    );
+    console.log(`[KVN] video loadeddata - "${asset.name}" videoSize=${video.videoWidth}x${video.videoHeight}`);
+    if (!drawMediaFrameToCanvas(video, canvas, asset.name)) {
+      wrapper.replaceWith(createBadgeThumb(asset));
+    }
   });
   video.addEventListener("error", (event) => {
     console.error(`[KVN] video erro - "${asset.name}" url=${asset.url}`, event);
-    video.replaceWith(createBadgeThumb(asset));
+    wrapper.replaceWith(createBadgeThumb(asset));
   });
-  video.kvnLoad = () => {
+  wrapper.kvnLoad = () => {
     console.log(`[KVN] kvnLoad (video) - "${asset.name}" url=${asset.url}`);
-    // preload="auto" (não "metadata") - testado: com "metadata" a
-    // duração/dimensões chegavam mas nenhum frame real era decodificado
-    // (nem um seek explícito conseguia forçar isso). "auto" pede pro
-    // motor carregar o suficiente pra realmente decodificar o primeiro
-    // frame, não só ler o cabeçalho do arquivo.
-    video.preload = "auto";
-    video.src = asset.url;
+    enqueueVideoLoad(video, asset.url);
   };
-  observer.observe(video);
-  return video;
+  observer.observe(wrapper);
+  return wrapper;
 }
 
 function createAudioThumb(asset, observer) {
