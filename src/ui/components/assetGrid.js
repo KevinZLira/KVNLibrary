@@ -48,7 +48,10 @@ function createImageThumb(asset, observer) {
   img.className = "kvn-asset-thumb kvn-asset-thumb-media";
   img.alt = asset.name;
   img.addEventListener("load", () => {
-    console.log(`[KVN] img carregada - "${asset.name}"`);
+    const rect = img.getBoundingClientRect();
+    console.log(
+      `[KVN] img carregada - "${asset.name}" natural=${img.naturalWidth}x${img.naturalHeight} rect=${rect.width.toFixed(1)}x${rect.height.toFixed(1)}`
+    );
   });
   img.addEventListener("error", (event) => {
     console.error(`[KVN] img erro - "${asset.name}" url=${asset.url}`, event);
@@ -67,7 +70,22 @@ function createVideoThumb(asset, observer) {
   video.className = "kvn-asset-thumb kvn-asset-thumb-media";
   video.muted = true;
   video.addEventListener("loadedmetadata", () => {
-    console.log(`[KVN] video metadata carregada - "${asset.name}"`);
+    console.log(`[KVN] video metadata carregada - "${asset.name}" duration=${video.duration}`);
+    // preload="metadata" normalmente só traz duração/dimensões, sem
+    // decodificar nenhum frame de verdade - forçar um seek pequeno
+    // obriga o navegador a decodificar e pintar aquele frame (técnica
+    // padrão pra gerar thumbnail de vídeo).
+    try {
+      video.currentTime = Math.min(0.1, video.duration || 0.1);
+    } catch (error) {
+      console.error(`[KVN] video seek erro - "${asset.name}"`, error);
+    }
+  });
+  video.addEventListener("seeked", () => {
+    const rect = video.getBoundingClientRect();
+    console.log(
+      `[KVN] video seeked - "${asset.name}" videoSize=${video.videoWidth}x${video.videoHeight} rect=${rect.width.toFixed(1)}x${rect.height.toFixed(1)}`
+    );
   });
   video.addEventListener("error", (event) => {
     console.error(`[KVN] video erro - "${asset.name}" url=${asset.url}`, event);
