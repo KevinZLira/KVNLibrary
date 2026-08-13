@@ -101,6 +101,22 @@ function createAudioThumb(asset, observer) {
   wrapper.kvnLoad = () => {
     console.log(`[KVN] kvnLoad (audio) - "${asset.name}"`);
     waveform.drawGeneratedWaveform(canvas, asset.name);
+    const rect = canvas.getBoundingClientRect();
+    const ctx = canvas.getContext("2d");
+    let pixelSample = "sem contexto";
+    try {
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let nonEmptyPixels = 0;
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] !== 0) nonEmptyPixels++;
+      }
+      pixelSample = `${nonEmptyPixels} px não-transparentes de ${data.length / 4}`;
+    } catch (error) {
+      pixelSample = `erro ao ler pixels: ${error.message}`;
+    }
+    console.log(
+      `[KVN] canvas depois de desenhar - rect=${rect.width.toFixed(1)}x${rect.height.toFixed(1)} buffer=${canvas.width}x${canvas.height} ${pixelSample}`
+    );
   };
   observer.observe(wrapper);
 
