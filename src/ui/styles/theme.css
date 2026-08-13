@@ -103,10 +103,13 @@ body {
 }
 
 /* Ícone de refresh (node 17:890/17:895/17:897): círculo 54x54px, glifo
-   32x32px centralizado. Verde neon com glow em três camadas, mesmo
-   tratamento do botão CTA ao lado (no Figma são duas elipses - uma
-   borrada atrás, uma sólida na frente - o box-shadow reproduz o mesmo
-   efeito sem precisar de uma segunda camada de elemento).
+   32x32px centralizado - asset SVG real do Figma (RefreshIcon.svg,
+   baixado via Figma MCP download_assets do node 17:897, com o retângulo
+   de fundo do recorte removido), não um caractere de fonte. Verde neon
+   com glow em três camadas, mesmo tratamento do botão CTA ao lado (no
+   Figma são duas elipses - uma borrada atrás, uma sólida na frente - o
+   box-shadow reproduz o mesmo efeito sem precisar de uma segunda camada
+   de elemento).
    É um <div role="button">, não <button> - <button> nesse webview do
    UXP recebe estilo nativo do SO que nem appearance:none consegue
    sobrescrever de forma confiável (testado: três tentativas de CSS
@@ -118,12 +121,15 @@ body {
   width: 54px;
   height: 54px;
   background-color: var(--kvn-accent);
-  background-image: linear-gradient(180deg, var(--kvn-accent-hover), var(--kvn-accent));
+  background-image:
+    url("../../../RefreshIcon.svg"),
+    linear-gradient(180deg, var(--kvn-accent-hover), var(--kvn-accent));
+  background-repeat: no-repeat, no-repeat;
+  background-position: center, center;
+  background-size: 32px 32px, cover;
   color: var(--kvn-accent-text);
   border-radius: 27px;
   cursor: pointer;
-  font-size: 28px;
-  font-weight: 700;
   line-height: 1;
   user-select: none;
   box-shadow:
@@ -134,7 +140,7 @@ body {
 }
 
 .kvn-icon-button:hover {
-  background: var(--kvn-accent-hover);
+  background-color: var(--kvn-accent-hover);
   box-shadow:
     0 0 10px 2px rgba(151, 255, 92, 1),
     0 0 34px 6px rgba(151, 255, 92, 0.7),
