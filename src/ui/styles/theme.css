@@ -58,12 +58,12 @@
 
   /* Breakpoint 1 (padrão - painel dockado estreito, até 479px):
      valores compactos, mesma proporção do Figma entre si. */
-  --kvn-header-h: 48px;
-  --kvn-header-pad-l: 16px;
-  --kvn-header-pad-r: 14px;
-  --kvn-logo-h: 26px;
-  --kvn-header-gap: 20px;
-  --kvn-icon-size: 30px;
+  --kvn-header-h: 38px;
+  --kvn-header-pad-l: 13px;
+  --kvn-header-pad-r: 11px;
+  --kvn-logo-h: 21px;
+  --kvn-header-gap: 16px;
+  --kvn-icon-size: 24px;
 
   --kvn-tree-w: 130px;
   --kvn-row-h: 34px;
@@ -95,12 +95,12 @@
 /* Breakpoint 2 (painel médio, 480-799px). */
 @media (min-width: 480px) {
   :root {
-    --kvn-header-h: 72px;
-    --kvn-header-pad-l: 28px;
-    --kvn-header-pad-r: 24px;
-    --kvn-logo-h: 38px;
-    --kvn-header-gap: 26px;
-    --kvn-icon-size: 38px;
+    --kvn-header-h: 56px;
+    --kvn-header-pad-l: 22px;
+    --kvn-header-pad-r: 19px;
+    --kvn-logo-h: 30px;
+    --kvn-header-gap: 20px;
+    --kvn-icon-size: 30px;
 
     --kvn-tree-w: 200px;
     --kvn-row-h: 44px;
@@ -133,12 +133,12 @@
 /* Breakpoint 3 (painel largo, 800-1079px). */
 @media (min-width: 800px) {
   :root {
-    --kvn-header-h: 110px;
-    --kvn-header-pad-l: 50px;
-    --kvn-header-pad-r: 45px;
-    --kvn-logo-h: 56px;
-    --kvn-header-gap: 32px;
-    --kvn-icon-size: 44px;
+    --kvn-header-h: 84px;
+    --kvn-header-pad-l: 38px;
+    --kvn-header-pad-r: 34px;
+    --kvn-logo-h: 43px;
+    --kvn-header-gap: 26px;
+    --kvn-icon-size: 34px;
 
     --kvn-tree-w: 280px;
     --kvn-row-h: 56px;
