@@ -278,6 +278,26 @@ Na aba **⚙ Configurações**:
 
 ## Solução de problemas
 
+### Vendo o erro real (console de depuração)
+
+Como o painel roda dentro do Premiere, ele não tem um DevTools visível por
+padrão — mas o arquivo `.debug` na raiz do projeto já habilita a depuração
+remota via Chrome. Se algum botão parecer não fazer nada, ou uma tela ficar
+em branco:
+
+1. Com o Premiere aberto e o painel **YouTube Importer** visível, abra o
+   **Google Chrome** (precisa estar instalado) e acesse:
+   `http://localhost:8090`
+2. Clique no link da extensão que aparecer na lista — isso abre o DevTools
+   do Chrome conectado ao painel.
+3. Vá na aba **Console** e veja a mensagem de erro em vermelho.
+4. Se quiser reportar o problema, copie o texto completo do erro.
+
+A partir da atualização mais recente, a maioria dos erros internos também
+aparece diretamente na tela do painel (na linha de status abaixo do campo de
+URL), então normalmente você já vai ver uma pista sem precisar abrir o
+Chrome — mas o DevTools continua sendo a forma mais completa de investigar.
+
 | Sintoma | O que fazer |
 |---|---|
 | "yt-dlp não foi encontrado" | Instale o yt-dlp (veja acima) ou informe o caminho manualmente em Configurações. |

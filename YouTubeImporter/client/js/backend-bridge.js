@@ -3,20 +3,83 @@
  * This file itself runs with Node integration (see CSXS/manifest.xml's
  * --enable-nodejs/--mixed-context flags), so plain require() works here
  * exactly like in a normal Node script.
+ *
+ * The extension root is resolved via the CEP native API
+ * (CSInterface.getSystemPath('extension')) rather than __dirname: it is the
+ * one path source guaranteed to be correct regardless of exactly how a given
+ * CEP/Chromium build wires up Node's module system for a plain <script src>
+ * tag. If require() still fails for some reason (Node integration disabled,
+ * missing manifest flags, etc.), we surface a clear, visible error instead
+ * of letting the whole script die silently — a silently-undefined
+ * BackendBridge is what makes buttons look like they "do nothing".
  */
 (function (global) {
   'use strict';
 
-  var path = require('path');
-  var os = require('os');
+  function resolveBackendDir(pathMod) {
+    try {
+      var extensionRoot = global.__csInterface
+        ? global.__csInterface.getSystemPath(SystemPath.EXTENSION)
+        : null;
+      if (extensionRoot) return pathMod.join(extensionRoot, 'backend');
+    } catch (e) {
+      // fall through to the __dirname-based guess below
+    }
+    return pathMod.join(__dirname, '..', '..', 'backend');
+  }
 
-  var backendDir = path.join(__dirname, '..', '..', 'backend');
-  var ytdlp = require(path.join(backendDir, 'ytdlp'));
-  var downloadManager = require(path.join(backendDir, 'downloadManager'));
-  var binaries = require(path.join(backendDir, 'binaries'));
-  var configStore = require(path.join(backendDir, 'config'));
-  var cacheStore = require(path.join(backendDir, 'cache'));
-  var historyStore = require(path.join(backendDir, 'history'));
+  function showFatalBridgeError(err) {
+    console.error('[YouTube Importer] Falha ao carregar o backend Node.js:', err);
+    document.addEventListener('DOMContentLoaded', function () {
+      var status = document.getElementById('url-status');
+      if (status) {
+        status.textContent =
+          'Erro interno ao iniciar a extensão (backend Node.js não carregou). Abra o console de depuração (veja README > Solução de problemas) e reporte a mensagem exibida lá.';
+        status.style.color = 'var(--error)';
+      }
+    });
+  }
+
+  /** Fallback object so every UI call fails loudly (via rejected promises) instead of "TypeError: BackendBridge is undefined". */
+  function makeStubBridge(err) {
+    function reject() {
+      return Promise.reject(new Error('A extensão não conseguiu carregar seu backend Node.js: ' + err.message));
+    }
+    return {
+      isValidYoutubeUrl: function () { return false; },
+      getVideoInfo: reject,
+      checkCache: function () { return null; },
+      startImportJob: function () { return { jobId: null, promise: reject(), cancel: function () {} }; },
+      cancelJob: function () {},
+      getConfig: function () { return {}; },
+      saveConfig: function () {},
+      checkBinaries: function () { return { ytdlp: null, ffmpeg: null }; },
+      listHistory: function () { return []; },
+      listFavorites: function () { return []; },
+      toggleFavorite: function () {},
+      clearHistory: function () {},
+      platform: '',
+      revealInFileBrowser: function () {},
+    };
+  }
+
+  var path, os, ytdlp, downloadManager, binaries, configStore, cacheStore, historyStore;
+  try {
+    path = require('path');
+    os = require('os');
+
+    var backendDir = resolveBackendDir(path);
+    ytdlp = require(path.join(backendDir, 'ytdlp'));
+    downloadManager = require(path.join(backendDir, 'downloadManager'));
+    binaries = require(path.join(backendDir, 'binaries'));
+    configStore = require(path.join(backendDir, 'config'));
+    cacheStore = require(path.join(backendDir, 'cache'));
+    historyStore = require(path.join(backendDir, 'history'));
+  } catch (err) {
+    showFatalBridgeError(err);
+    global.BackendBridge = makeStubBridge(err);
+    return;
+  }
 
   function currentConfig() {
     return configStore.load();
