@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionManifest Version="11.0" ExtensionBundleId="com.kvnlibrary.youtubeimporter"
+    ExtensionBundleVersion="1.0.0" ExtensionBundleName="YouTube Importer"
+    xmlns:ExtensionBundleId="http://ns.adobe.com/extension">
+  <ExtensionList>
+    <Extension Id="com.kvnlibrary.youtubeimporter.panel" Version="1.0.0" />
+  </ExtensionList>
+  <ExecutionEnvironment>
+    <HostList>
+      <!-- Premiere Pro. VersionRange is intentionally wide to cover current and
+           near-future releases; narrow it if you need to pin to a specific build. -->
+      <Host Name="PPRO" Version="[22.0,99.9]" />
+    </HostList>
+    <LocaleList>
+      <Locale Code="All" />
+    </LocaleList>
+    <RequiredRuntimeList>
+      <RequiredRuntime Name="CSXS" Version="11.0" />
+    </RequiredRuntimeList>
+  </ExecutionEnvironment>
+  <DispatchInfoList>
+    <Extension Id="com.kvnlibrary.youtubeimporter.panel">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./client/index.html</MainPath>
+          <ScriptPath>./host/index.jsx</ScriptPath>
+          <CEFCommandLine>
+            <!-- Enables require()/fs/child_process/os/path/crypto directly inside the
+                 panel's own JS context (the "mixed context" model). This is what lets
+                 the frontend call the Node.js backend modules under /backend without a
+                 separate server process. See README.md > Arquitetura for details. -->
+            <Parameter>--enable-nodejs</Parameter>
+            <Parameter>--mixed-context</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <UI>
+          <Type>Panel</Type>
+          <Menu>YouTube Importer</Menu>
+          <Geometry>
+            <Size>
+              <Height>760</Height>
+              <Width>420</Width>
+            </Size>
+            <MinSize>
+              <Height>500</Height>
+              <Width>340</Width>
+            </MinSize>
+            <MaxSize>
+              <Height>2000</Height>
+              <Width>900</Width>
+            </MaxSize>
+          </Geometry>
+          <Icons>
+            <Icon Type="Normal">./icons/icon-normal.png</Icon>
+            <Icon Type="RollOver">./icons/icon-rollover.png</Icon>
+            <Icon Type="Disabled">./icons/icon-disabled.png</Icon>
+            <Icon Type="DarkNormal">./icons/icon-dark-normal.png</Icon>
+            <Icon Type="DarkRollOver">./icons/icon-dark-rollover.png</Icon>
+          </Icons>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+  </DispatchInfoList>
+</ExtensionManifest>

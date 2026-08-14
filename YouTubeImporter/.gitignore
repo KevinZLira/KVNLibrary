@@ -1,0 +1,4 @@
+.yti-temp/
+*.log
+.DS_Store
+Thumbs.db
