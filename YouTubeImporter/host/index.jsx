@@ -1,188 +1,134 @@
-// ExtendScript (JSX) host bridge for the YouTube Importer panel.
-// Runs inside Premiere Pro's scripting engine — this is the only layer that
-// may touch app.project / app.project.activeSequence.
-//
-// Every entry point returns a JSON string of the shape:
-//   { ok: true, data: <...> }  or  { ok: false, code: "...", message: "..." }
-// so the panel's JS side always gets something it can JSON.parse().
+/* YouTube Importer — Premiere Pro host script.
+ *
+ * Runs inside Premiere's ExtendScript engine (ES3: var only, no modern JS,
+ * no native JSON guaranteed). Loaded automatically via <ScriptPath> in the
+ * manifest; the panel also re-loads it with $.evalFile as a fallback (see
+ * client/js/host-bridge.js) in case the manifest auto-load didn't take.
+ *
+ * Protocol: every entry point returns a plain "OK|<detail>" or
+ * "ERR|<message>" string — deliberately not JSON. A previous version used a
+ * hand-rolled JSON polyfill (JSON.parse via eval()) here; this simpler
+ * pipe-delimited protocol removes that whole class of fragile parsing and
+ * matches a pattern already verified working in a real Premiere install.
+ *
+ * Entry points:
+ *   YTI_hasOpenProject()                                -> "yes" | "no"
+ *   YTI_importAndInsert(filePath, mode, binName, audioFlag)
+ *     mode: "bin" (import only) | "playhead" (import + insert at playhead)
+ *     audioFlag: "1" for audio-only clips, "0" otherwise
+ *     -> "OK|bin" | "OK|playhead" | "OK|bin-noseq" | "ERR|<message>"
+ */
 
-// --- Minimal JSON polyfill -------------------------------------------------
-// Some ExtendScript engine builds still lack a global JSON object.
-if (typeof JSON === 'undefined') {
-  JSON = {};
-}
-if (!JSON.stringify) {
-  JSON.stringify = function (obj) {
-    var t = typeof obj;
-    if (t !== 'object' || obj === null) {
-      if (t === 'string') return '"' + obj.replace(/[\\"]/g, '\\$&').replace(/\n/g, '\\n') + '"';
-      return String(obj);
-    }
-    var isArray = obj && obj.constructor === Array;
-    var pieces = [];
-    if (isArray) {
-      for (var i = 0; i < obj.length; i++) pieces.push(JSON.stringify(obj[i]));
-      return '[' + pieces.join(',') + ']';
-    }
-    for (var k in obj) {
-      if (obj.hasOwnProperty(k)) pieces.push('"' + k + '":' + JSON.stringify(obj[k]));
-    }
-    return '{' + pieces.join(',') + '}';
-  };
-}
-if (!JSON.parse) {
-  JSON.parse = function (text) {
-    // eslint-disable-next-line no-eval
-    return eval('(' + text + ')');
-  };
-}
+var YTI_TICKS_PER_SECOND = 254016000000; // Premiere's internal ticks-per-second
 
-// --- Helpers -----------------------------------------------------------
-
-function YTI_ok(data) {
-  return JSON.stringify({ ok: true, data: data });
-}
-
-function YTI_err(code, message) {
-  return JSON.stringify({ ok: false, code: code, message: message });
-}
-
-function YTI_normalizePath(p) {
-  return String(p).replace(/\\/g, '/');
-}
-
-function YTI_getOrCreateBin(name) {
-  var root = app.project.rootItem;
-  for (var i = 0; i < root.children.numItems; i++) {
-    var item = root.children[i];
-    if (item.type === ProjectItemType.BIN && item.name === name) {
-      return item;
-    }
+function YTI_hasOpenProject() {
+  try {
+    return app.project ? "yes" : "no";
+  } catch (e) {
+    return "no";
   }
-  return root.createBin(name);
 }
 
-function YTI_findItemByPath(container, targetPath) {
-  var wanted = YTI_normalizePath(targetPath).toLowerCase();
-  for (var i = 0; i < container.children.numItems; i++) {
-    var item = container.children[i];
-    if (item.type === ProjectItemType.BIN) {
-      var found = YTI_findItemByPath(item, targetPath);
-      if (found) return found;
+function YTI_norm(p) {
+  return String(p).replace(/\//g, "\\").toLowerCase();
+}
+
+function YTI_findItemByPath(container, target) {
+  var i, it, hit;
+  for (i = 0; i < container.children.numItems; i++) {
+    it = container.children[i];
+    if (it.type === ProjectItemType.BIN) {
+      hit = YTI_findItemByPath(it, target);
+      if (hit) return hit;
     } else {
       try {
-        var mediaPath = item.getMediaPath ? item.getMediaPath() : null;
-        if (mediaPath && YTI_normalizePath(mediaPath).toLowerCase() === wanted) return item;
+        var mp = it.getMediaPath();
+        if (mp && YTI_norm(mp) === target) return it;
       } catch (e) {
-        // items without media (e.g. sequences) throw on getMediaPath; skip them
+        // some item types (e.g. sequences) have no media path
       }
     }
   }
   return null;
 }
 
-// --- Public entry points -------------------------------------------------
-
-/**
- * Imports a downloaded clip into the project, inside the given bin
- * (created on demand). Returns the resulting media path so the panel can
- * later locate the ProjectItem again (e.g. to send it to the timeline).
- */
-function YTI_importToProject(argsJson) {
-  try {
-    var args = JSON.parse(argsJson);
-    if (!app.project) return YTI_err('NO_PROJECT', 'Nenhum projeto do Premiere está aberto.');
-
-    var bin = YTI_getOrCreateBin(args.binName || 'YouTube Imports');
-    var existing = YTI_findItemByPath(bin, args.filePath);
-    if (existing) {
-      return YTI_ok({ imported: true, alreadyPresent: true, mediaPath: args.filePath, name: existing.name });
-    }
-
-    var success = app.project.importFiles([args.filePath], true, bin, false);
-    if (!success) {
-      return YTI_err('IMPORT_FAILED', 'Não foi possível importar o arquivo para o projeto do Premiere.');
-    }
-
-    var imported = YTI_findItemByPath(bin, args.filePath);
-    return YTI_ok({
-      imported: true,
-      alreadyPresent: false,
-      mediaPath: args.filePath,
-      name: imported ? imported.name : null,
-    });
-  } catch (e) {
-    return YTI_err('IMPORT_FAILED', 'Não foi possível importar o arquivo para o projeto do Premiere: ' + e.toString());
+function YTI_getOrCreateBin(name) {
+  var root = app.project.rootItem;
+  var i, it;
+  for (i = 0; i < root.children.numItems; i++) {
+    it = root.children[i];
+    if (it.type === ProjectItemType.BIN && it.name === name) return it;
   }
+  return root.createBin(name);
 }
 
-/** Reports whether a sequence is currently open, and the playhead position. */
-function YTI_getActiveSequenceInfo() {
-  try {
-    if (!app.project) return YTI_err('NO_PROJECT', 'Nenhum projeto do Premiere está aberto.');
-    var seq = app.project.activeSequence;
-    if (!seq) {
-      return YTI_ok({ hasSequence: false });
+/** Prefers the track the editor has targeted in the timeline header, then
+ *  falls back to the first unlocked track — never picks a locked one. */
+function YTI_firstUsableTrack(tracks) {
+  var i, t;
+  for (i = 0; i < tracks.numTracks; i++) {
+    t = tracks[i];
+    try {
+      if (t.isTargeted() && !t.isLocked()) return t;
+    } catch (eTarget) {
+      break; // isTargeted() unavailable on very old versions — fall through
     }
-    var pos = seq.getPlayerPosition();
-    return YTI_ok({
-      hasSequence: true,
-      sequenceName: seq.name,
-      playheadSeconds: pos.seconds,
-      playheadTicks: pos.ticks,
-    });
-  } catch (e) {
-    return YTI_err('UNKNOWN', e.toString());
   }
+  for (i = 0; i < tracks.numTracks; i++) {
+    t = tracks[i];
+    try {
+      if (!t.isLocked()) return t;
+    } catch (e) {
+      return t; // isLocked() unavailable — assume usable
+    }
+  }
+  return tracks.numTracks > 0 ? tracks[0] : null;
 }
 
-/**
- * Inserts the given (already-imported) clip onto the currently active
- * sequence at the current playhead position. Video+audio and video-only
- * clips go on the first video track (Premiere carries the linked audio
- * along automatically); audio-only clips go on the first audio track.
- */
-function YTI_insertClipAtPlayhead(argsJson) {
+function YTI_importAndInsert(filePath, mode, binName, audioFlag) {
   try {
-    var args = JSON.parse(argsJson);
-    if (!app.project) return YTI_err('NO_PROJECT', 'Nenhum projeto do Premiere está aberto.');
+    if (!app.project) return "ERR|Nenhum projeto do Premiere está aberto.";
 
-    var seq = app.project.activeSequence;
-    if (!seq) {
-      return YTI_err('NO_SEQUENCE', 'Não há nenhuma sequência aberta no Premiere. Abra ou crie uma sequência antes de enviar para a timeline.');
-    }
+    var bin = YTI_getOrCreateBin(binName || "YouTube Imports");
+    var target = YTI_norm(filePath);
+    var item = YTI_findItemByPath(bin, target) || YTI_findItemByPath(app.project.rootItem, target);
 
-    var bin = YTI_getOrCreateBin(args.binName || 'YouTube Imports');
-    var item = YTI_findItemByPath(bin, args.filePath);
     if (!item) {
-      return YTI_err('IMPORT_FAILED', 'O clipe precisa estar no projeto antes de ser enviado para a timeline.');
+      app.project.importFiles([filePath], true, bin, false);
+      item = YTI_findItemByPath(bin, target) || YTI_findItemByPath(app.project.rootItem, target);
+    }
+    if (!item) {
+      return "ERR|O arquivo foi importado, mas não foi possível localizá-lo no projeto.";
     }
 
-    var ticks = seq.getPlayerPosition().ticks;
+    if (mode === "bin") return "OK|bin";
 
-    if (args.mediaType === 'audio-only') {
-      if (seq.audioTracks.numTracks === 0) {
-        return YTI_err('NO_SEQUENCE', 'A sequência ativa não tem nenhuma faixa de áudio.');
-      }
-      seq.audioTracks[0].insertClip(item, ticks);
-    } else {
-      if (seq.videoTracks.numTracks === 0) {
-        return YTI_err('NO_SEQUENCE', 'A sequência ativa não tem nenhuma faixa de vídeo.');
-      }
-      seq.videoTracks[0].insertClip(item, ticks);
+    var seq = app.project.activeSequence;
+    if (!seq) return "OK|bin-noseq"; // imported, nothing to insert into
+
+    var seconds = seq.getPlayerPosition().seconds;
+    var wantAudio = (audioFlag === "1");
+    var track = YTI_firstUsableTrack(wantAudio ? seq.audioTracks : seq.videoTracks);
+    if (!track) {
+      return "ERR|A sequência ativa não tem nenhuma faixa de " + (wantAudio ? "áudio" : "vídeo") + " disponível (destravada).";
     }
 
-    return YTI_ok({ inserted: true, sequenceName: seq.name, atTicks: ticks });
-  } catch (e) {
-    return YTI_err('UNKNOWN', e.toString());
-  }
-}
+    // insertClip performs an insert edit (ripples downstream clips) and
+    // brings the linked audio/video along automatically. Some Premiere
+    // builds want seconds as a float, others want a tick string — try the
+    // float first and fall back to ticks.
+    try {
+      track.insertClip(item, seconds);
+    } catch (e1) {
+      try {
+        track.insertClip(item, "" + Math.round(seconds * YTI_TICKS_PER_SECOND));
+      } catch (e2) {
+        return "ERR|Falha ao inserir na timeline: " + e2 + " (a faixa está travada?)";
+      }
+    }
 
-/** Used by the panel to confirm a project is open before starting any work. */
-function YTI_hasOpenProject() {
-  try {
-    return YTI_ok({ hasProject: !!app.project });
+    return "OK|playhead";
   } catch (e) {
-    return YTI_ok({ hasProject: false });
+    return "ERR|" + e;
   }
 }

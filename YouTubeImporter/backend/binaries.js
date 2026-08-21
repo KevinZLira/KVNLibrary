@@ -5,18 +5,48 @@ const fs = require('fs');
 const path = require('path');
 const { ImporterError } = require('./errors');
 
+/**
+ * GUI apps on macOS (Premiere included) do NOT inherit the shell's PATH —
+ * no /opt/homebrew/bin, no /usr/local/bin — so a bare-name spawn misses
+ * Homebrew installs even though `which yt-dlp` works fine in Terminal.
+ * We ask the user's actual login shell for its PATH once per process and
+ * fold any new directories into the candidate list below. Synchronous and
+ * best-effort: any failure just leaves the extra list empty.
+ */
+let shellPathDirs = null;
+function loadShellPathDirsOnce() {
+  if (shellPathDirs !== null) return shellPathDirs;
+  shellPathDirs = [];
+  if (process.platform !== 'win32') {
+    try {
+      const shell = process.env.SHELL || '/bin/zsh';
+      const res = spawnSync(shell, ['-lc', 'echo -n "$PATH"'], { encoding: 'utf8', timeout: 8000 });
+      if (res.status === 0 && res.stdout) {
+        shellPathDirs = res.stdout.trim().split(':').filter((d) => d.startsWith('/'));
+      }
+    } catch (_) {
+      // best effort — keep the empty list
+    }
+  }
+  return shellPathDirs;
+}
+
 /** Extra locations to probe besides PATH, per binary/platform. Homebrew and
  *  common Windows package-manager install dirs aren't always on the PATH that
  *  a GUI app (Premiere) inherits, so we check them explicitly. */
 function extraCandidates(binName) {
   const home = require('os').homedir();
   if (process.platform === 'darwin') {
-    return [
-      `/opt/homebrew/bin/${binName}`,
-      `/usr/local/bin/${binName}`,
-      `/usr/bin/${binName}`,
-      path.join(home, '.local', 'bin', binName),
+    const dirs = [
+      '/opt/homebrew/bin',
+      '/usr/local/bin',
+      '/opt/local/bin',
+      '/usr/bin',
+      path.join(home, '.local', 'bin'),
+      path.join(home, 'bin'),
+      ...loadShellPathDirsOnce(),
     ];
+    return [...new Set(dirs)].map((dir) => path.join(dir, binName));
   }
   if (process.platform === 'win32') {
     return [
@@ -26,7 +56,7 @@ function extraCandidates(binName) {
       path.join(home, 'scoop', 'shims', `${binName}.exe`),
     ];
   }
-  return [`/usr/local/bin/${binName}`, `/usr/bin/${binName}`];
+  return [...new Set(['/usr/local/bin', '/usr/bin', ...loadShellPathDirsOnce()])].map((dir) => path.join(dir, binName));
 }
 
 function whichOnPath(binName) {

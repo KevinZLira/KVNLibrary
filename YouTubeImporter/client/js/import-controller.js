@@ -143,23 +143,26 @@
       .then(function (result) {
         setStage('Importando para Premiere...');
         el('progress-bar-fill').style.width = '100%';
-        return HostBridge.importToProject(result.filePath, config.binName).then(function () {
-          if (target === 'timeline') {
-            return HostBridge.getActiveSequenceInfo().then(function (seqInfo) {
-              if (!seqInfo.hasSequence) {
-                throw Object.assign(new Error('Não há nenhuma sequência aberta no Premiere. Abra ou crie uma sequência para enviar o trecho para a timeline. O clipe já foi importado para o projeto.'), { code: 'NO_SEQUENCE' });
-              }
-              return HostBridge.insertClipAtPlayhead(result.filePath, result.mediaType, config.binName);
-            });
-          }
-          return null;
-        }).then(function () {
-          return result;
+
+        var hostCall = target === 'timeline'
+          ? HostBridge.insertClipAtPlayhead(result.filePath, result.mediaType, config.binName)
+          : HostBridge.importToProject(result.filePath, config.binName).then(function () { return 'bin'; });
+
+        return hostCall.then(function (detail) {
+          return { result: result, detail: detail };
         });
       })
-      .then(function (result) {
+      .then(function (outcome) {
         setStage('Concluído');
-        var where = target === 'timeline' ? 'Importado para o projeto e enviado para a timeline.' : 'Importado para o projeto.';
+        var result = outcome.result;
+        var where;
+        if (outcome.detail === 'bin-noseq') {
+          where = 'Importado para o projeto. Não há nenhuma sequência aberta — abra ou crie uma sequência e clique em "Enviar para Timeline" novamente para inserir o clipe.';
+        } else if (target === 'timeline') {
+          where = 'Importado para o projeto e enviado para a timeline.';
+        } else {
+          where = 'Importado para o projeto.';
+        }
         showResult(where + ' Arquivo: ' + result.title, false);
       })
       .catch(function (err) {

@@ -1,49 +1,39 @@
 /*
  * Bridge between the panel UI and the Node.js backend under /backend.
- * This file itself runs with Node integration (see CSXS/manifest.xml's
- * --enable-nodejs/--mixed-context flags), so plain require() works here
- * exactly like in a normal Node script.
  *
- * The extension root is resolved via the CEP native API
- * (CSInterface.getSystemPath('extension')) rather than __dirname: it is the
- * one path source guaranteed to be correct regardless of exactly how a given
- * CEP/Chromium build wires up Node's module system for a plain <script src>
- * tag. If require() still fails for some reason (Node integration disabled,
- * missing manifest flags, etc.), we surface a clear, visible error instead
- * of letting the whole script die silently — a silently-undefined
- * BackendBridge is what makes buttons look like they "do nothing".
+ * CEP's Node.js integration (--enable-nodejs/--mixed-context in
+ * CSXS/manifest.xml) does NOT put a bare `require`/`__dirname` in scope for
+ * a plain <script src> tag. The real, confirmed-working entry point is
+ * `window.cep_node.require` (falling back to `window.require` on older CEP
+ * builds) — this pattern is verified against a known-working Premiere Pro
+ * CEP extension. Using a bare `require(...)` here throws a ReferenceError
+ * before anything else runs, which is what made every button look like it
+ * "did nothing": BackendBridge never got defined and nothing said why.
  */
 (function (global) {
   'use strict';
 
-  function resolveBackendDir(pathMod) {
-    try {
-      var extensionRoot = global.__csInterface
-        ? global.__csInterface.getSystemPath(SystemPath.EXTENSION)
-        : null;
-      if (extensionRoot) return pathMod.join(extensionRoot, 'backend');
-    } catch (e) {
-      // fall through to the __dirname-based guess below
-    }
-    return pathMod.join(__dirname, '..', '..', 'backend');
-  }
+  var nodeRequire =
+    (typeof global.cep_node !== 'undefined' && global.cep_node.require)
+      ? global.cep_node.require
+      : (typeof global.require === 'function' ? global.require : null);
 
-  function showFatalBridgeError(err) {
-    console.error('[YouTube Importer] Falha ao carregar o backend Node.js:', err);
+  function showFatalBridgeError(detail) {
+    console.error('[YouTube Importer] Falha ao carregar o backend Node.js:', detail);
     document.addEventListener('DOMContentLoaded', function () {
       var status = document.getElementById('url-status');
       if (status) {
         status.textContent =
-          'Erro interno ao iniciar a extensão (backend Node.js não carregou). Abra o console de depuração (veja README > Solução de problemas) e reporte a mensagem exibida lá.';
+          'Erro interno ao iniciar a extensão (backend Node.js não carregou: ' + detail + '). Veja README > Solução de problemas.';
         status.style.color = 'var(--error)';
       }
     });
   }
 
   /** Fallback object so every UI call fails loudly (via rejected promises) instead of "TypeError: BackendBridge is undefined". */
-  function makeStubBridge(err) {
+  function makeStubBridge(detail) {
     function reject() {
-      return Promise.reject(new Error('A extensão não conseguiu carregar seu backend Node.js: ' + err.message));
+      return Promise.reject(new Error('A extensão não conseguiu carregar seu backend Node.js: ' + detail));
     }
     return {
       isValidYoutubeUrl: function () { return false; },
@@ -63,21 +53,30 @@
     };
   }
 
+  if (!nodeRequire) {
+    showFatalBridgeError('window.cep_node.require e window.require estão indisponíveis — o Node.js não foi habilitado para este painel.');
+    global.BackendBridge = makeStubBridge('Node.js não habilitado.');
+    return;
+  }
+
   var path, os, ytdlp, downloadManager, binaries, configStore, cacheStore, historyStore;
   try {
-    path = require('path');
-    os = require('os');
+    path = nodeRequire('path');
+    os = nodeRequire('os');
 
-    var backendDir = resolveBackendDir(path);
-    ytdlp = require(path.join(backendDir, 'ytdlp'));
-    downloadManager = require(path.join(backendDir, 'downloadManager'));
-    binaries = require(path.join(backendDir, 'binaries'));
-    configStore = require(path.join(backendDir, 'config'));
-    cacheStore = require(path.join(backendDir, 'cache'));
-    historyStore = require(path.join(backendDir, 'history'));
+    var extensionRoot = global.__csInterface ? global.__csInterface.getSystemPath(SystemPath.EXTENSION) : null;
+    if (!extensionRoot) throw new Error('CSInterface.getSystemPath(EXTENSION) não retornou um caminho.');
+    var backendDir = path.join(extensionRoot, 'backend');
+
+    ytdlp = nodeRequire(path.join(backendDir, 'ytdlp'));
+    downloadManager = nodeRequire(path.join(backendDir, 'downloadManager'));
+    binaries = nodeRequire(path.join(backendDir, 'binaries'));
+    configStore = nodeRequire(path.join(backendDir, 'config'));
+    cacheStore = nodeRequire(path.join(backendDir, 'cache'));
+    historyStore = nodeRequire(path.join(backendDir, 'history'));
   } catch (err) {
-    showFatalBridgeError(err);
-    global.BackendBridge = makeStubBridge(err);
+    showFatalBridgeError(err.message);
+    global.BackendBridge = makeStubBridge(err.message);
     return;
   }
 
@@ -138,8 +137,8 @@
     // --- misc ---------------------------------------------------------
     platform: os.platform(),
     revealInFileBrowser: function (filePath) {
-      var cp = require('child_process');
       try {
+        var cp = nodeRequire('child_process');
         if (os.platform() === 'darwin') cp.spawn('open', ['-R', filePath]);
         else if (os.platform() === 'win32') cp.spawn('explorer.exe', ['/select,', filePath]);
         else cp.spawn('xdg-open', [path.dirname(filePath)]);
