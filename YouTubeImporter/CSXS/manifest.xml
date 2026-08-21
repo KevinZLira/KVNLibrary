@@ -1,21 +1,24 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="11.0" ExtensionBundleId="com.kvnlibrary.youtubeimporter"
-    ExtensionBundleVersion="1.0.0" ExtensionBundleName="YouTube Importer"
-    xmlns:ExtensionBundleId="http://ns.adobe.com/extension">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<ExtensionManifest ExtensionBundleId="com.kvnlibrary.youtubeimporter"
+    ExtensionBundleName="YouTube Importer"
+    ExtensionBundleVersion="1.0.0"
+    Version="9.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <ExtensionList>
     <Extension Id="com.kvnlibrary.youtubeimporter.panel" Version="1.0.0" />
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>
-      <!-- Premiere Pro. VersionRange is intentionally wide to cover current and
-           near-future releases; narrow it if you need to pin to a specific build. -->
-      <Host Name="PPRO" Version="[22.0,99.9]" />
+      <!-- PPRO 13.0 = Premiere Pro 2019. Kept low/wide on purpose: RequiredRuntime
+           below is what actually gates CEP feature availability, so there is no
+           benefit to also narrowing the Premiere version range here. -->
+      <Host Name="PPRO" Version="[13.0,99.9]" />
     </HostList>
     <LocaleList>
       <Locale Code="All" />
     </LocaleList>
     <RequiredRuntimeList>
-      <RequiredRuntime Name="CSXS" Version="11.0" />
+      <RequiredRuntime Name="CSXS" Version="9.0" />
     </RequiredRuntimeList>
   </ExecutionEnvironment>
   <DispatchInfoList>
@@ -33,6 +36,9 @@
             <Parameter>--mixed-context</Parameter>
           </CEFCommandLine>
         </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
         <UI>
           <Type>Panel</Type>
           <Menu>YouTube Importer</Menu>
