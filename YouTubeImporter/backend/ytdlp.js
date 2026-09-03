@@ -2,6 +2,7 @@
 
 const { spawn, spawnSync } = require('child_process');
 const path = require('path');
+const { URL } = require('url'); // don't rely on the global `URL` — not present on the older Node some CEP builds bundle
 const { fromRaw, ImporterError } = require('./errors');
 
 /** Extracts the YouTube video ID from any of the accepted URL shapes. */
@@ -119,7 +120,7 @@ const QUALITY_HEIGHTS = { best: null, '1080p': 1080, '720p': 720, '480p': 480 };
  */
 function resolveFormatPlan(mediaType, quality, availableHeights) {
   const heights = availableHeights && availableHeights.length ? availableHeights : [];
-  const requestedHeight = QUALITY_HEIGHTS[quality] ?? null;
+  const requestedHeight = QUALITY_HEIGHTS[quality] !== undefined ? QUALITY_HEIGHTS[quality] : null; // avoid `??` — needs Node 14+, not guaranteed on older CEP-bundled Node
 
   let effectiveHeight = requestedHeight;
   let downgraded = false;
