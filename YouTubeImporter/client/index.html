@@ -2,23 +2,28 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<title>YouTube Importer</title>
+<title>KVN_SYS // MEDIA ACQUISITION</title>
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <div id="app" class="app" ondragover="return false;">
 
+    <header class="hud-bar">
+      <span class="hud-id"><b>KVN_SYS</b> // VIDEO ACQUISITION</span>
+      <span class="hud-status"><span class="pulse-dot"></span>ONLINE</span>
+    </header>
+
     <nav class="tabs">
       <button class="tab-btn active" data-tab="import">Importar</button>
       <button class="tab-btn" data-tab="history">Histórico</button>
-      <button class="tab-btn" data-tab="settings">⚙ Configurações</button>
+      <button class="tab-btn" data-tab="settings">⚙ Config</button>
     </nav>
 
     <!-- ===================== IMPORTAR ===================== -->
     <section id="tab-import" class="tab-panel active">
 
       <div class="card" id="url-card">
-        <label class="field-label" for="url-input">URL do YouTube</label>
+        <label class="field-label" for="url-input">Source // YouTube URL</label>
         <div class="url-row">
           <input id="url-input" type="text" placeholder="Cole a URL do YouTube..." autocomplete="off" />
           <button id="load-btn" class="btn btn-primary">Carregar</button>
@@ -41,12 +46,12 @@
       </div>
 
       <div class="card hidden" id="preview-card">
-        <div class="field-label">Prévia</div>
+        <div class="field-label">Preview // Feed</div>
         <div id="player-container" class="player-container"></div>
       </div>
 
       <div class="card hidden" id="trim-card">
-        <div class="field-label">Selecionar trecho</div>
+        <div class="field-label">Trim // Source Range</div>
         <div class="trim-row">
           <div class="trim-field">
             <label for="start-input">Início</label>
@@ -64,7 +69,7 @@
       </div>
 
       <div class="card hidden" id="media-card">
-        <div class="field-label">Tipo de mídia</div>
+        <div class="field-label">Output // Media Type</div>
         <div class="radio-group" id="media-type-group">
           <label class="radio-option">
             <input type="radio" name="mediaType" value="video-audio" checked />
@@ -80,7 +85,7 @@
           </label>
         </div>
 
-        <div class="field-label">Qualidade</div>
+        <div class="field-label">Quality // Encode</div>
         <select id="quality-select">
           <option value="best">Melhor disponível</option>
           <option value="1080p">1080p</option>
@@ -109,7 +114,7 @@
       </div>
 
       <div class="card hidden" id="batch-card">
-        <div class="field-label">Importação em lote</div>
+        <div class="field-label">Batch // Queue</div>
         <textarea id="batch-input" rows="4" placeholder="Cole uma URL por linha..."></textarea>
         <button id="batch-run-btn" class="btn btn-secondary btn-block">Processar lista</button>
         <div id="batch-list" class="batch-list"></div>
@@ -121,12 +126,12 @@
     <!-- ===================== HISTÓRICO ===================== -->
     <section id="tab-history" class="tab-panel">
       <div class="card">
-        <div class="field-label">Favoritos</div>
+        <div class="field-label">Marked // Favoritos</div>
         <div id="favorites-list" class="history-list"></div>
       </div>
       <div class="card">
         <div class="history-header">
-          <div class="field-label">Últimos importados</div>
+          <div class="field-label">Archive // Últimos Importados</div>
           <button id="clear-history-btn" class="btn btn-ghost btn-small">Limpar histórico</button>
         </div>
         <div id="history-list" class="history-list"></div>
@@ -136,7 +141,7 @@
     <!-- ===================== CONFIGURAÇÕES ===================== -->
     <section id="tab-settings" class="tab-panel">
       <div class="card">
-        <div class="field-label">Pasta de downloads</div>
+        <div class="field-label">Storage // Pasta de Downloads</div>
         <div class="url-row">
           <input id="download-dir-input" type="text" />
         </div>
@@ -144,12 +149,12 @@
       </div>
 
       <div class="card">
-        <div class="field-label">Nome do bin no projeto</div>
+        <div class="field-label">Project // Bin Name</div>
         <input id="bin-name-input" type="text" />
       </div>
 
       <div class="card">
-        <div class="field-label">Caminhos personalizados (opcional)</div>
+        <div class="field-label">Binaries // Caminhos Personalizados</div>
         <label class="small-label" for="ytdlp-path-input">Caminho do yt-dlp</label>
         <input id="ytdlp-path-input" type="text" placeholder="Deixe em branco para detecção automática" />
         <label class="small-label" for="ffmpeg-path-input">Caminho do ffmpeg</label>
@@ -168,7 +173,7 @@
       </div>
 
       <div class="card" id="binaries-status-card">
-        <div class="field-label">Status das dependências</div>
+        <div class="field-label">System // Dependency Status</div>
         <div id="ytdlp-status" class="status-line">yt-dlp: verificando...</div>
         <div id="ffmpeg-status" class="status-line">ffmpeg: verificando...</div>
         <button id="recheck-binaries-btn" class="btn btn-ghost btn-small">Verificar novamente</button>
@@ -177,6 +182,11 @@
       <button id="save-settings-btn" class="btn btn-primary btn-block">Salvar configurações</button>
       <div id="settings-saved-msg" class="status-line hidden">Configurações salvas.</div>
     </section>
+
+    <footer class="hud-foot">
+      <span>NODE_07 · LOCAL · SECURE</span>
+      <span>KVN_MEDIA_SYS</span>
+    </footer>
 
   </div>
 
