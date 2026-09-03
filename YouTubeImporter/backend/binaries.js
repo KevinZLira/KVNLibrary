@@ -203,4 +203,13 @@ function locateAll(config) {
   };
 }
 
-module.exports = { resolveBinary, requireBinary, locateAll, verifyExecutable };
+module.exports = {
+  resolveBinary,
+  requireBinary,
+  locateAll,
+  verifyExecutable,
+  // exported for diagnostics (see: node -e "require('./backend/binaries')...")
+  findInWinGetPackages,
+  searchForFile,
+  whichOnPath,
+};
