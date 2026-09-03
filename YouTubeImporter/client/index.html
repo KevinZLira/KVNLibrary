@@ -173,6 +173,20 @@
       </div>
 
       <div class="card">
+        <div class="field-label">Auth // Cookies</div>
+        <input id="cookies-path-input" type="text" placeholder="Deixe em branco para não usar cookies" />
+        <div class="hint">
+          Caminho de um arquivo <code>cookies.txt</code> exportado do seu
+          navegador logado no YouTube (extensão "Get cookies.txt LOCALLY"
+          funciona bem). Costuma destravar qualidade melhor quando o YouTube
+          limita downloads anônimos. Evite <code>--cookies-from-browser</code>
+          manual no Windows — costuma falhar por causa da criptografia de
+          cookies do Chrome/Brave/Edge; um arquivo exportado não tem esse
+          problema.
+        </div>
+      </div>
+
+      <div class="card">
         <div class="field-label">Advanced // Extra yt-dlp Args</div>
         <input id="extra-ytdlp-args-input" type="text" placeholder='Ex.: --extractor-args "youtube:player_client=web"' />
         <div class="hint">

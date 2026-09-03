@@ -137,6 +137,7 @@ async function runPipeline(jobId, control, params, onProgress) {
         outputTemplate,
         useSections,
         extraArgsString: config.extraYtdlpArgs,
+        cookiesPath: config.cookiesPath,
       },
       (evt) => onProgress(evt)
     );

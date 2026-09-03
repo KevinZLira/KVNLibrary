@@ -94,7 +94,7 @@
       if (!resolved.ytdlp) {
         return Promise.reject(Object.assign(new Error('O yt-dlp não foi encontrado neste computador. Instale-o e configure o caminho em ⚙ Configurações.'), { code: 'YTDLP_MISSING' }));
       }
-      return ytdlp.getVideoInfo(resolved.ytdlp, url, config.extraYtdlpArgs);
+      return ytdlp.getVideoInfo(resolved.ytdlp, url, config.extraYtdlpArgs, config.cookiesPath);
     },
 
     // --- import pipeline -------------------------------------------------

@@ -10,6 +10,7 @@
     el('bin-name-input').value = config.binName;
     el('ytdlp-path-input').value = config.ytdlpPath || '';
     el('ffmpeg-path-input').value = config.ffmpegPath || '';
+    el('cookies-path-input').value = config.cookiesPath || '';
     el('extra-ytdlp-args-input').value = config.extraYtdlpArgs || '';
     el('cache-enabled-input').checked = config.cacheEnabled !== false;
     el('cleanup-temp-input').checked = config.autoCleanupTemp !== false;
@@ -21,6 +22,7 @@
       binName: el('bin-name-input').value.trim() || 'YouTube Imports',
       ytdlpPath: el('ytdlp-path-input').value.trim(),
       ffmpegPath: el('ffmpeg-path-input').value.trim(),
+      cookiesPath: el('cookies-path-input').value.trim(),
       extraYtdlpArgs: el('extra-ytdlp-args-input').value.trim(),
       cacheEnabled: el('cache-enabled-input').checked,
       autoCleanupTemp: el('cleanup-temp-input').checked,

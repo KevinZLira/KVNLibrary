@@ -38,6 +38,11 @@ const DEFAULTS = {
   ffmpegPath: '', // empty = auto-detect on PATH
   autoCleanupTemp: true,
   cacheEnabled: true,
+  // Path to a cookies.txt file (Netscape format) exported from a logged-in
+  // browser session — passed to yt-dlp as --cookies. Authenticated requests
+  // consistently get a fuller format catalog than anonymous ones once
+  // YouTube flags a session for extra restrictions. Empty = don't send any.
+  cookiesPath: '',
   // Free-form extra CLI flags appended to every yt-dlp invocation. Lets the
   // app absorb whatever workaround YouTube's ever-changing restrictions
   // require next (e.g. a PO-token-provider --extractor-args string) without

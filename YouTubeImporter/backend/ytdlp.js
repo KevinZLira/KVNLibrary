@@ -6,15 +6,22 @@ const { URL } = require('url'); // don't rely on the global `URL` — not presen
 const { fromRaw, ImporterError } = require('./errors');
 
 /**
- * Forces yt-dlp's "android" player client. YouTube's anti-bot checks
- * (PO tokens, SABR streaming enforcement) currently reject the default
- * client selection with a bare HTTP 403 on some networks/accounts even on
- * the latest yt-dlp release — confirmed by testing several player clients
- * directly; "android" was the one that worked. This is an active,
- * ever-shifting fight between YouTube and every downloader tool, so this
- * choice may need revisiting again later if YouTube closes this path too.
+ * Forces yt-dlp's "android" player client, but ONLY when no cookies are
+ * configured. YouTube's anti-bot checks (PO tokens, SABR streaming
+ * enforcement) reject the default client selection with a bare HTTP 403 for
+ * anonymous requests on some networks — "android" was the client that still
+ * worked in that case. But once real cookies (an authenticated session) are
+ * available, forcing android actively hurts: yt-dlp's own default
+ * multi-client selection combined with valid auth reliably unlocks the full
+ * format catalog (confirmed by a real side-by-side test — same video, same
+ * network, only difference was cookies + no forced client), where android
+ * alone stays capped low regardless. This is an active, ever-shifting fight
+ * between YouTube and every downloader tool, so this choice may need
+ * revisiting again later.
  */
-const YOUTUBE_EXTRACTOR_ARGS = ['--extractor-args', 'youtube:player_client=android'];
+function buildClientOverrideArgs(hasCookies) {
+  return hasCookies ? [] : ['--extractor-args', 'youtube:player_client=android'];
+}
 
 /**
  * Minimal shell-like tokenizer for the user-editable "extra args" setting
@@ -83,6 +90,11 @@ function isValidYoutubeUrl(rawUrl) {
   return extractVideoId(rawUrl) !== null;
 }
 
+function buildCookiesArgs(cookiesPath) {
+  const trimmed = String(cookiesPath || '').trim();
+  return trimmed ? ['--cookies', trimmed] : [];
+}
+
 function normalizeUrl(rawUrl) {
   const id = extractVideoId(rawUrl);
   return id ? `https://www.youtube.com/watch?v=${id}` : rawUrl;
@@ -97,7 +109,7 @@ function secToClock(totalSeconds) {
 }
 
 /** Runs `yt-dlp -J <url>` and returns the parsed metadata (title, duration, formats, ...). */
-function getVideoInfo(ytdlpPath, rawUrl, extraArgsString) {
+function getVideoInfo(ytdlpPath, rawUrl, extraArgsString, cookiesPath) {
   return new Promise((resolve, reject) => {
     const url = normalizeUrl(rawUrl);
     if (!isValidYoutubeUrl(url)) {
@@ -105,7 +117,13 @@ function getVideoInfo(ytdlpPath, rawUrl, extraArgsString) {
       return;
     }
 
-    const args = ['-J', '--no-warnings', '--no-playlist', '--no-check-certificates', ...YOUTUBE_EXTRACTOR_ARGS, ...parseExtraArgs(extraArgsString), url];
+    const args = [
+      '-J', '--no-warnings', '--no-playlist', '--no-check-certificates',
+      ...buildClientOverrideArgs(!!String(cookiesPath || '').trim()),
+      ...buildCookiesArgs(cookiesPath),
+      ...parseExtraArgs(extraArgsString),
+      url,
+    ];
     const child = spawn(ytdlpPath, args, { windowsHide: true });
 
     let stdout = '';
@@ -185,9 +203,13 @@ function resolveFormatPlan(mediaType, quality, availableHeights) {
   if (mediaType === 'audio-only' || quality === 'audio-best') {
     selector = 'bestaudio/best';
   } else if (mediaType === 'video-only') {
-    selector = `bestvideo${heightClause}/best${heightClause}`;
+    // Prefer H.264 (avc1) at the target height — Premiere opens it reliably
+    // everywhere; VP9/AV1 support varies by OS/GPU/Premiere version and can
+    // silently fail to preview even when the file imports. Falls back to
+    // any codec at that height, then to whatever's best overall.
+    selector = `bestvideo${heightClause}[vcodec^=avc1]/bestvideo${heightClause}/best${heightClause}`;
   } else {
-    selector = `bestvideo${heightClause}+bestaudio/best${heightClause}`;
+    selector = `bestvideo${heightClause}[vcodec^=avc1]+bestaudio/bestvideo${heightClause}+bestaudio/best${heightClause}`;
     mergeToMp4 = true;
   }
 
@@ -212,7 +234,7 @@ function resolveFormatPlan(mediaType, quality, availableHeights) {
  * trim it locally afterward instead. Streams progress events; returns the
  * child process handle so the caller can cancel.
  */
-function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, formatSelector, mergeToMp4, outputTemplate, useSections = true, extraArgsString }, onProgress) {
+function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, formatSelector, mergeToMp4, outputTemplate, useSections = true, extraArgsString, cookiesPath }, onProgress) {
   const args = [
     normalizeUrl(url),
     '-f', formatSelector,
@@ -223,7 +245,8 @@ function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, 
     '--ffmpeg-location', ffmpegDir,
     '-o', outputTemplate,
     '--print', 'after_move:filepath',
-    ...YOUTUBE_EXTRACTOR_ARGS,
+    ...buildClientOverrideArgs(!!String(cookiesPath || '').trim()),
+    ...buildCookiesArgs(cookiesPath),
     ...parseExtraArgs(extraArgsString),
   ];
   if (useSections) {

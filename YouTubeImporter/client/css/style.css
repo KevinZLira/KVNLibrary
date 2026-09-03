@@ -483,6 +483,15 @@ input[type="radio"]:checked::after {
   line-height: 1.6;
 }
 
+.hint code {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 1px;
+  padding: 1px 4px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
 .status-line {
   margin-top: var(--space-2);
   font-size: 10px;
