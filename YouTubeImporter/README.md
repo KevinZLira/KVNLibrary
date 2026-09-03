@@ -310,6 +310,7 @@ Chrome — mas o DevTools continua sendo a forma mais completa de investigar.
 | O painel não aparece no menu Window → Extensions | Confirme que rodou o instalador (ou habilitou `PlayerDebugMode`) e reinicie o Premiere completamente. |
 | A prévia do YouTube não carrega | Requer acesso à internet a partir do painel; os campos de início/fim continuam funcionando manualmente mesmo sem a prévia. |
 | Áudio não fica sincronizado ao vídeo na timeline | Confirme que o clipe foi baixado como "Vídeo + Áudio" — o Premiere posiciona o áudio vinculado automaticamente ao inserir na faixa de vídeo; se a faixa de áudio correspondente estiver bloqueada/desabilitada, desbloqueie-a antes de importar. |
+| "O YouTube recusou o acesso a este vídeo (erro 403)" | O YouTube atualiza suas proteções anti-bot com frequência, e o yt-dlp precisa correr atrás. Primeiro, atualize o yt-dlp (`winget upgrade yt-dlp.yt-dlp` no Windows, `brew upgrade yt-dlp` no macOS) e tente de novo. O plugin já força o uso do client "android" do YouTube internamente (contorno que resolveu esse erro em testes), mas se voltar a acontecer mesmo com o yt-dlp atualizado, é sinal de que o YouTube fechou também esse caminho — abra uma issue ou aguarde uma atualização do yt-dlp, que costuma sair em poucos dias para esses casos. |
 
 Todos os erros técnicos (código de saída de processo, stack trace etc.) são
 traduzidos para mensagens compreensíveis antes de chegar à interface — se
