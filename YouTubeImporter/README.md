@@ -302,6 +302,16 @@ Na aba **⚙ Configurações**:
 - **Caminhos personalizados de yt-dlp/ffmpeg** — use se a detecção
   automática não encontrar os executáveis.
 - **Cache** e **limpeza automática de arquivos temporários** — ligar/desligar.
+- **Cookies** — caminho de um arquivo `cookies.txt` (formato Netscape)
+  exportado de um navegador logado no YouTube. Costuma destravar qualidade
+  bem melhor quando o YouTube limita downloads anônimos (confirmado em
+  testes reais — com cookies válidos, o yt-dlp consegue o catálogo completo
+  de formatos até 1080p+; sem cookies, algumas sessões ficam limitadas a
+  360p). Para exportar: instale a extensão **"Get cookies.txt LOCALLY"** no
+  seu navegador, abra youtube.com logado, exporte os cookies do site e
+  aponte este campo para o arquivo salvo. Evite `--cookies-from-browser`
+  manual no Windows — costuma falhar por causa da criptografia de cookies
+  do Chrome/Brave/Edge; um arquivo exportado não tem esse problema.
 - **Argumentos extras do yt-dlp** — campo livre repassado a toda chamada do
   yt-dlp. É a válvula de escape para quando o YouTube muda alguma proteção
   e a comunidade descobre um novo parâmetro de contorno (ex.:
