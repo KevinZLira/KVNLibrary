@@ -74,9 +74,26 @@
     this._native().dispatchEvent(event);
   };
 
+  /**
+   * The native call can return either a plain filesystem path OR a
+   * "file://" URI, depending on the CEP build/platform (observed returning
+   * a raw "file:///C:/Users/..." string on Windows). Passing the URI form
+   * straight into Node's `path.join`/`require` mangles it (the leading
+   * "file:///" survives as a bogus path segment). Strip the scheme so
+   * callers always get a normal native path.
+   */
+  function stripFileUri(raw) {
+    var decoded = decodeURIComponent(raw);
+    var winMatch = /^file:\/\/\/([a-zA-Z]:.*)$/.exec(decoded); // file:///C:/... -> C:/...
+    if (winMatch) return winMatch[1].replace(/\//g, '\\');
+    var posixMatch = /^file:\/\/(\/.*)$/.exec(decoded); // file:///Users/... -> /Users/...
+    if (posixMatch) return posixMatch[1];
+    return decoded; // already a plain path — leave it alone
+  }
+
   CSInterface.prototype.getSystemPath = function (pathType) {
     var path = this._native().getSystemPath(pathType);
-    return decodeURIComponent(path);
+    return stripFileUri(path);
   };
 
   CSInterface.prototype.getOSInformation = function () {
