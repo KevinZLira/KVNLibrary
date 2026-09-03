@@ -31,6 +31,59 @@ function loadShellPathDirsOnce() {
   return shellPathDirs;
 }
 
+/**
+ * Bounded depth-first search for `targetNameLower` under `dir`. WinGet
+ * "portable/zip" packages (ffmpeg's Gyan.FFmpeg build included) don't always
+ * get a PATH shim in WinGet\Links — the real exe can sit several
+ * version-numbered subfolders deep, e.g.
+ * WinGet\Packages\Gyan.FFmpeg_.../ffmpeg-9.0.1-full_build\bin\ffmpeg.exe.
+ * Depth is capped so a huge/broken folder tree can't hang startup.
+ */
+function searchForFile(dir, targetNameLower, depthRemaining) {
+  if (depthRemaining < 0) return null;
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch (_) {
+    return null;
+  }
+  for (const entry of entries) {
+    if (entry.isFile() && entry.name.toLowerCase() === targetNameLower) {
+      return path.join(dir, entry.name);
+    }
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const found = searchForFile(path.join(dir, entry.name), targetNameLower, depthRemaining - 1);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/** Searches WinGet's per-package install folders for `<binName>.exe` when
+ *  it isn't reachable via the WinGet\Links PATH shim (see searchForFile). */
+function findInWinGetPackages(binName) {
+  const base = path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WinGet', 'Packages');
+  let entries;
+  try {
+    entries = fs.readdirSync(base, { withFileTypes: true });
+  } catch (_) {
+    return null;
+  }
+  const nameLower = binName.toLowerCase();
+  const targetNameLower = `${binName}.exe`.toLowerCase();
+  const packageDirs = entries
+    .filter((e) => e.isDirectory() && e.name.toLowerCase().includes(nameLower))
+    .map((e) => path.join(base, e.name));
+
+  for (const dir of packageDirs) {
+    const found = searchForFile(dir, targetNameLower, 4);
+    if (found) return found;
+  }
+  return null;
+}
+
 /** Extra locations to probe besides PATH, per binary/platform. Homebrew and
  *  common Windows package-manager install dirs aren't always on the PATH that
  *  a GUI app (Premiere) inherits, so we check them explicitly. */
@@ -49,12 +102,15 @@ function extraCandidates(binName) {
     return [...new Set(dirs)].map((dir) => path.join(dir, binName));
   }
   if (process.platform === 'win32') {
-    return [
+    const candidates = [
       path.join(process.env.LOCALAPPDATA || '', 'Microsoft', 'WinGet', 'Links', `${binName}.exe`),
       path.join(process.env.ProgramFiles || 'C:\\Program Files', binName, `${binName}.exe`),
       `C:\\${binName}\\${binName}.exe`,
       path.join(home, 'scoop', 'shims', `${binName}.exe`),
     ];
+    const wingetPackageHit = findInWinGetPackages(binName);
+    if (wingetPackageHit) candidates.push(wingetPackageHit);
+    return candidates;
   }
   return [...new Set(['/usr/local/bin', '/usr/bin', ...loadShellPathDirsOnce()])].map((dir) => path.join(dir, binName));
 }
