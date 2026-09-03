@@ -33,6 +33,7 @@ const RULES = [
   [/Incomplete YouTube ID/i, 'URL_INVALID'],
   [/Requested format is not available/i, 'FORMAT_UNAVAILABLE'],
   [/HTTP Error 429/i, 'RATE_LIMITED'],
+  [/HTTP Error 403/i, 'YOUTUBE_FORBIDDEN'],
   [/ENOTFOUND|ENETUNREACH|EAI_AGAIN|network is unreachable/i, 'NETWORK_LOST'],
   [/ETIMEDOUT|timed out/i, 'NETWORK_LOST'],
   [/ENOSPC|No space left on device/i, 'DISK_FULL'],
@@ -53,6 +54,8 @@ const MESSAGES = {
   URL_INVALID: 'URL inválida. Verifique se é um link válido do YouTube (youtube.com/watch?v=... ou youtu.be/...).',
   FORMAT_UNAVAILABLE: 'O formato/qualidade selecionado não está disponível para este vídeo.',
   RATE_LIMITED: 'O YouTube limitou temporariamente as solicitações. Aguarde alguns minutos e tente novamente.',
+  YOUTUBE_FORBIDDEN:
+    'O YouTube recusou o acesso a este vídeo (erro 403). Isso costuma acontecer quando o yt-dlp está desatualizado frente às proteções mais recentes do YouTube. Atualize o yt-dlp (Windows: "winget upgrade yt-dlp.yt-dlp"; macOS: "brew upgrade yt-dlp") e tente novamente.',
   NETWORK_LOST: 'A conexão com a internet foi perdida durante o processo. Verifique sua conexão e tente novamente.',
   DISK_FULL: 'Não há espaço suficiente em disco para concluir o download.',
   CLIP_INVALID: 'O trecho selecionado é inválido. Verifique os tempos de início e fim.',
