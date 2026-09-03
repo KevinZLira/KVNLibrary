@@ -302,8 +302,16 @@ Na aba **⚙ Configurações**:
 - **Caminhos personalizados de yt-dlp/ffmpeg** — use se a detecção
   automática não encontrar os executáveis.
 - **Cache** e **limpeza automática de arquivos temporários** — ligar/desligar.
+- **Argumentos extras do yt-dlp** — campo livre repassado a toda chamada do
+  yt-dlp. É a válvula de escape para quando o YouTube muda alguma proteção
+  e a comunidade descobre um novo parâmetro de contorno (ex.:
+  `--extractor-args "youtube:player_client=web"`) — cole aqui sem precisar
+  esperar uma atualização da extensão. Deixe em branco na maioria das vezes.
 - **Status das dependências** — mostra se `yt-dlp`/`ffmpeg` foram encontrados
-  e o caminho usado.
+  e o caminho usado, com um botão **Atualizar yt-dlp** (tenta o
+  autoatualizador do próprio yt-dlp e cai para `winget`/`brew` se necessário)
+  — o jeito mais rápido de resolver problemas de qualidade/bloqueio quando
+  o YouTube muda algo.
 
 ---
 
@@ -341,7 +349,8 @@ Chrome — mas o DevTools continua sendo a forma mais completa de investigar.
 | O painel não aparece no menu Window → Extensions | Confirme que rodou o instalador (ou habilitou `PlayerDebugMode`) e reinicie o Premiere completamente. |
 | A prévia do YouTube não carrega | Requer acesso à internet a partir do painel; os campos de início/fim continuam funcionando manualmente mesmo sem a prévia. |
 | Áudio não fica sincronizado ao vídeo na timeline | Confirme que o clipe foi baixado como "Vídeo + Áudio" — o Premiere posiciona o áudio vinculado automaticamente ao inserir na faixa de vídeo; se a faixa de áudio correspondente estiver bloqueada/desabilitada, desbloqueie-a antes de importar. |
-| "O YouTube recusou o acesso a este vídeo (erro 403)" | O YouTube atualiza suas proteções anti-bot com frequência, e o yt-dlp precisa correr atrás. Primeiro, atualize o yt-dlp (`winget upgrade yt-dlp.yt-dlp` no Windows, `brew upgrade yt-dlp` no macOS) e tente de novo. O plugin já força o uso do client "android" do YouTube internamente (contorno que resolveu esse erro em testes), mas se voltar a acontecer mesmo com o yt-dlp atualizado, é sinal de que o YouTube fechou também esse caminho — abra uma issue ou aguarde uma atualização do yt-dlp, que costuma sair em poucos dias para esses casos. |
+| "O YouTube recusou o acesso a este vídeo (erro 403)" | Clique em **Atualizar yt-dlp** em ⚙ Configurações e tente de novo — o YouTube muda suas proteções anti-bot com frequência, e o yt-dlp lança correções para isso quase todo dia. Se persistir mesmo atualizado, é sinal de que o YouTube fechou também o contorno atual; acompanhe [o issue #12482 do yt-dlp](https://github.com/yt-dlp/yt-dlp/issues/12482) para novidades. |
+| Baixa em qualidade muito abaixo do selecionado (ex.: sempre 360p mesmo pedindo 1080p) | Isso normalmente é o YouTube limitando os formatos disponíveis para a sessão atual (proteção "SABR"/PO Token, cada vez mais comum) — não é um bug do plugin. 1) Clique em **Atualizar yt-dlp** em ⚙ Configurações; o time do yt-dlp corre atrás disso constantemente. 2) Se ainda assim continuar limitado, procure na comunidade do yt-dlp (busque "yt-dlp SABR" ou "yt-dlp PO token") pelo parâmetro de contorno mais atual e cole em ⚙ Configurações → **Advanced // Extra yt-dlp Args** (ex.: `--extractor-args "youtube:player_client=web"`) — não precisa esperar uma atualização da extensão para isso. |
 
 Todos os erros técnicos (código de saída de processo, stack trace etc.) são
 traduzidos para mensagens compreensíveis antes de chegar à interface — se
