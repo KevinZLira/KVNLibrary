@@ -166,6 +166,7 @@
         showResult(where + ' Arquivo: ' + result.title, false);
       })
       .catch(function (err) {
+        console.error('[YouTube Importer] Falha na importação — código:', err && err.code, '| detalhes técnicos:', err && err.details, '| erro completo:', err);
         if (err && err.code === 'CANCELLED') {
           setStage('Cancelado');
           showResult('Importação cancelada.', false);
