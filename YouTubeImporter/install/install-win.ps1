@@ -13,7 +13,7 @@ Write-Host "Destino: $TargetDir"
 if (Test-Path $TargetDir) { Remove-Item -Recurse -Force $TargetDir }
 New-Item -ItemType Directory -Force -Path $TargetDir | Out-Null
 
-Get-ChildItem -Path $SourceDir -Exclude "install", ".git" | ForEach-Object {
+Get-ChildItem -Path $SourceDir -Force -Exclude "install", ".git" | ForEach-Object {
     Copy-Item -Path $_.FullName -Destination $TargetDir -Recurse -Force
 }
 
