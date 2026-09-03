@@ -124,6 +124,7 @@ function getVideoInfo(ytdlpPath, rawUrl, extraArgsString, cookiesPath) {
       ...parseExtraArgs(extraArgsString),
       url,
     ];
+    console.log('[YouTube Importer] getVideoInfo command:', ytdlpPath, args.join(' '));
     const child = spawn(ytdlpPath, args, { windowsHide: true });
 
     let stdout = '';
@@ -139,7 +140,9 @@ function getVideoInfo(ytdlpPath, rawUrl, extraArgsString, cookiesPath) {
       }
       try {
         const info = JSON.parse(stdout);
-        resolve(normalizeInfo(info));
+        const normalized = normalizeInfo(info);
+        console.log('[YouTube Importer] availableHeights:', normalized.availableHeights);
+        resolve(normalized);
       } catch (e) {
         reject(fromRaw(stderr || e.message));
       }
@@ -255,6 +258,7 @@ function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, 
   }
   if (mergeToMp4) args.push('--merge-output-format', 'mp4');
 
+  console.log('[YouTube Importer] downloadSection command:', ytdlpPath, args.join(' '));
   const child = spawn(ytdlpPath, args, { windowsHide: true });
   let stderr = '';
   let lastPrintedPath = '';
