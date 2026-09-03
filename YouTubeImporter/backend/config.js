@@ -38,6 +38,11 @@ const DEFAULTS = {
   ffmpegPath: '', // empty = auto-detect on PATH
   autoCleanupTemp: true,
   cacheEnabled: true,
+  // Free-form extra CLI flags appended to every yt-dlp invocation. Lets the
+  // app absorb whatever workaround YouTube's ever-changing restrictions
+  // require next (e.g. a PO-token-provider --extractor-args string) without
+  // needing a code update — see README > Solução de problemas.
+  extraYtdlpArgs: '',
 };
 
 function load() {

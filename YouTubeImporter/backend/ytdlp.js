@@ -16,6 +16,40 @@ const { fromRaw, ImporterError } = require('./errors');
  */
 const YOUTUBE_EXTRACTOR_ARGS = ['--extractor-args', 'youtube:player_client=android'];
 
+/**
+ * Minimal shell-like tokenizer for the user-editable "extra args" setting
+ * (Configurações > avançado) — supports single/double-quoted segments so a
+ * value containing spaces, e.g. --extractor-args "youtube:player_client=web",
+ * splits into the right argv entries. This is the escape hatch that lets
+ * the app absorb whatever new yt-dlp flag YouTube's restrictions require
+ * next without a code update.
+ */
+function parseExtraArgs(raw) {
+  const str = String(raw || '').trim();
+  if (!str) return [];
+  const tokens = [];
+  let current = '';
+  let quote = null;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (quote) {
+      if (ch === quote) quote = null;
+      else current += ch;
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (/\s/.test(ch)) {
+      if (current) {
+        tokens.push(current);
+        current = '';
+      }
+    } else {
+      current += ch;
+    }
+  }
+  if (current) tokens.push(current);
+  return tokens;
+}
+
 /** Extracts the YouTube video ID from any of the accepted URL shapes. */
 function extractVideoId(rawUrl) {
   if (!rawUrl) return null;
@@ -63,7 +97,7 @@ function secToClock(totalSeconds) {
 }
 
 /** Runs `yt-dlp -J <url>` and returns the parsed metadata (title, duration, formats, ...). */
-function getVideoInfo(ytdlpPath, rawUrl) {
+function getVideoInfo(ytdlpPath, rawUrl, extraArgsString) {
   return new Promise((resolve, reject) => {
     const url = normalizeUrl(rawUrl);
     if (!isValidYoutubeUrl(url)) {
@@ -71,7 +105,7 @@ function getVideoInfo(ytdlpPath, rawUrl) {
       return;
     }
 
-    const args = ['-J', '--no-warnings', '--no-playlist', '--no-check-certificates', ...YOUTUBE_EXTRACTOR_ARGS, url];
+    const args = ['-J', '--no-warnings', '--no-playlist', '--no-check-certificates', ...YOUTUBE_EXTRACTOR_ARGS, ...parseExtraArgs(extraArgsString), url];
     const child = spawn(ytdlpPath, args, { windowsHide: true });
 
     let stdout = '';
@@ -178,7 +212,7 @@ function resolveFormatPlan(mediaType, quality, availableHeights) {
  * trim it locally afterward instead. Streams progress events; returns the
  * child process handle so the caller can cancel.
  */
-function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, formatSelector, mergeToMp4, outputTemplate, useSections = true }, onProgress) {
+function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, formatSelector, mergeToMp4, outputTemplate, useSections = true, extraArgsString }, onProgress) {
   const args = [
     normalizeUrl(url),
     '-f', formatSelector,
@@ -190,6 +224,7 @@ function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, 
     '-o', outputTemplate,
     '--print', 'after_move:filepath',
     ...YOUTUBE_EXTRACTOR_ARGS,
+    ...parseExtraArgs(extraArgsString),
   ];
   if (useSections) {
     const section = `*${secToClock(startSeconds)}-${secToClock(endSeconds)}`;
@@ -265,4 +300,5 @@ module.exports = {
   resolveFormatPlan,
   downloadSection,
   parseProgressLine,
+  parseExtraArgs,
 };

@@ -172,11 +172,26 @@
         </label>
       </div>
 
+      <div class="card">
+        <div class="field-label">Advanced // Extra yt-dlp Args</div>
+        <input id="extra-ytdlp-args-input" type="text" placeholder='Ex.: --extractor-args "youtube:player_client=web"' />
+        <div class="hint">
+          Repassado direto para toda chamada do yt-dlp. Use quando o YouTube
+          mudar alguma proteção e a comunidade descobrir um novo parâmetro
+          de contorno — cole aqui, sem precisar atualizar a extensão. Deixe
+          em branco na maioria das vezes.
+        </div>
+      </div>
+
       <div class="card" id="binaries-status-card">
         <div class="field-label">System // Dependency Status</div>
         <div id="ytdlp-status" class="status-line">yt-dlp: verificando...</div>
         <div id="ffmpeg-status" class="status-line">ffmpeg: verificando...</div>
-        <button id="recheck-binaries-btn" class="btn btn-ghost btn-small">Verificar novamente</button>
+        <div class="url-row">
+          <button id="recheck-binaries-btn" class="btn btn-ghost btn-small">Verificar novamente</button>
+          <button id="update-ytdlp-btn" class="btn btn-ghost btn-small">Atualizar yt-dlp</button>
+        </div>
+        <div id="update-ytdlp-status" class="status-line"></div>
       </div>
 
       <button id="save-settings-btn" class="btn btn-primary btn-block">Salvar configurações</button>

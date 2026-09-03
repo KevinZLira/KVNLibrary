@@ -212,4 +212,79 @@ function locateAll(config) {
   };
 }
 
-module.exports = { resolveBinary, requireBinary, locateAll, verifyExecutable };
+/** yt-dlp's own self-update flag. Works for the standalone binary (winget's
+ *  package on Windows, manual/direct-download installs everywhere), but
+ *  yt-dlp deliberately refuses to self-update a Homebrew install and tells
+ *  the caller to use `brew upgrade` instead — that refusal (non-zero exit,
+ *  message mentioning brew/pip) is what triggers the package-manager
+ *  fallback below. */
+function selfUpdateYtdlp(ytdlpPath) {
+  return new Promise((resolve) => {
+    let child;
+    try {
+      child = spawn(ytdlpPath, ['-U'], { windowsHide: true, timeout: 60000 });
+    } catch (e) {
+      resolve({ ok: false, blocked: false, message: e.message });
+      return;
+    }
+    let output = '';
+    child.stdout.on('data', (d) => { output += d.toString(); });
+    child.stderr.on('data', (d) => { output += d.toString(); });
+    child.on('error', (err) => resolve({ ok: false, blocked: false, message: err.message }));
+    child.on('close', (code) => {
+      const trimmed = output.trim();
+      const blocked = /brew upgrade|pip install|not been built with|self-update/i.test(trimmed);
+      resolve({ ok: code === 0 && !blocked, blocked, message: trimmed || `yt-dlp -U saiu com código ${code}` });
+    });
+  });
+}
+
+/** Fallback for installs yt-dlp itself won't self-update (Homebrew) or
+ *  when -U fails outright: ask the platform's package manager instead. */
+function updateViaPackageManager() {
+  return new Promise((resolve) => {
+    let cmd;
+    let args;
+    if (process.platform === 'darwin') {
+      cmd = 'brew';
+      args = ['upgrade', 'yt-dlp'];
+    } else if (process.platform === 'win32') {
+      cmd = 'winget';
+      args = ['upgrade', '--id', 'yt-dlp.yt-dlp', '-e', '--accept-package-agreements', '--accept-source-agreements'];
+    } else {
+      resolve({ ok: false, message: 'Atualização automática não suportada nesta plataforma. Atualize o yt-dlp manualmente.' });
+      return;
+    }
+
+    let child;
+    try {
+      child = spawn(cmd, args, { windowsHide: true, timeout: 120000 });
+    } catch (e) {
+      resolve({ ok: false, message: `${cmd} não encontrado (${e.message}).` });
+      return;
+    }
+    let output = '';
+    child.stdout.on('data', (d) => { output += d.toString(); });
+    child.stderr.on('data', (d) => { output += d.toString(); });
+    child.on('error', (err) => resolve({ ok: false, message: `${cmd} não encontrado (${err.message}).` }));
+    child.on('close', (code) => {
+      const lastLines = output.trim().split('\n').slice(-2).join(' ').trim();
+      resolve({ ok: code === 0, message: lastLines || `${cmd} saiu com código ${code}` });
+    });
+  });
+}
+
+/** Tries yt-dlp's own self-update first, falls back to winget/brew if that's blocked or fails. */
+async function updateYtdlp(config) {
+  const ytdlpPath = resolveBinary('yt-dlp', config && config.ytdlpPath);
+  if (!ytdlpPath) {
+    return { ok: false, message: 'yt-dlp não foi encontrado — nada para atualizar.' };
+  }
+
+  const selfResult = await selfUpdateYtdlp(ytdlpPath);
+  if (selfResult.ok) return selfResult;
+
+  return updateViaPackageManager();
+}
+
+module.exports = { resolveBinary, requireBinary, locateAll, verifyExecutable, updateYtdlp };

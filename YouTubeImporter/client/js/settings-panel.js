@@ -10,6 +10,7 @@
     el('bin-name-input').value = config.binName;
     el('ytdlp-path-input').value = config.ytdlpPath || '';
     el('ffmpeg-path-input').value = config.ffmpegPath || '';
+    el('extra-ytdlp-args-input').value = config.extraYtdlpArgs || '';
     el('cache-enabled-input').checked = config.cacheEnabled !== false;
     el('cleanup-temp-input').checked = config.autoCleanupTemp !== false;
   }
@@ -20,6 +21,7 @@
       binName: el('bin-name-input').value.trim() || 'YouTube Imports',
       ytdlpPath: el('ytdlp-path-input').value.trim(),
       ffmpegPath: el('ffmpeg-path-input').value.trim(),
+      extraYtdlpArgs: el('extra-ytdlp-args-input').value.trim(),
       cacheEnabled: el('cache-enabled-input').checked,
       autoCleanupTemp: el('cleanup-temp-input').checked,
     };
@@ -42,11 +44,33 @@
       : 'ffmpeg: não encontrado — veja o README para instalar.';
   }
 
+  function updateYtdlp() {
+    var btn = el('update-ytdlp-btn');
+    var status = el('update-ytdlp-status');
+    btn.disabled = true;
+    status.textContent = 'Atualizando yt-dlp (pode levar um minuto)...';
+    status.style.color = 'var(--text-dim)';
+    BackendBridge.updateYtdlp()
+      .then(function (result) {
+        status.textContent = result.message;
+        status.style.color = result.ok ? 'var(--accent)' : 'var(--error)';
+        checkBinaries();
+      })
+      .catch(function (err) {
+        status.textContent = (err && err.message) || 'Não foi possível atualizar o yt-dlp.';
+        status.style.color = 'var(--error)';
+      })
+      .finally(function () {
+        btn.disabled = false;
+      });
+  }
+
   function init() {
     loadIntoForm();
     checkBinaries();
     el('save-settings-btn').addEventListener('click', save);
     el('recheck-binaries-btn').addEventListener('click', checkBinaries);
+    el('update-ytdlp-btn').addEventListener('click', updateYtdlp);
   }
 
   global.SettingsPanel = { init: init, checkBinaries: checkBinaries };

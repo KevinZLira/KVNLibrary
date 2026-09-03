@@ -136,6 +136,7 @@ async function runPipeline(jobId, control, params, onProgress) {
         mergeToMp4: plan.mergeToMp4,
         outputTemplate,
         useSections,
+        extraArgsString: config.extraYtdlpArgs,
       },
       (evt) => onProgress(evt)
     );
