@@ -91,8 +91,19 @@ function findInWinGetPackages(binName) {
   const nameLower = binName.toLowerCase();
   const targetNameLower = `${binName}.exe`.toLowerCase();
   const packageDirs = entries
-    .filter((e) => e.isDirectory() && e.name.toLowerCase().includes(nameLower))
-    .map((e) => path.join(base, e.name));
+    .filter((e) => e.name.toLowerCase().includes(nameLower))
+    .map((e) => path.join(base, e.name))
+    .filter((fullPath) => {
+      // Same fix as searchForFile: WinGet's package folders themselves can be
+      // symlinks/junctions, which Dirent.isDirectory() (unlike statSync)
+      // doesn't see through — that alone was enough to make this whole
+      // function return null before even reaching the recursive search.
+      try {
+        return fs.statSync(fullPath).isDirectory();
+      } catch (_) {
+        return false;
+      }
+    });
 
   for (const dir of packageDirs) {
     const found = searchForFile(dir, targetNameLower, 4);
