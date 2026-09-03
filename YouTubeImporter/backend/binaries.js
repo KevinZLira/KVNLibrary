@@ -47,13 +47,30 @@ function searchForFile(dir, targetNameLower, depthRemaining) {
   } catch (_) {
     return null;
   }
+
+  // Dirent.isDirectory()/isFile() report the entry's own type and do NOT
+  // follow symlinks/junctions — WinGet packages can store their extracted
+  // content behind exactly that (observed: ffmpeg's install has a symlinked
+  // version subfolder, which made isDirectory() report false and silently
+  // skip the whole subtree containing ffmpeg.exe). fs.statSync follows
+  // links, so use that instead; entries statSync can't resolve (broken
+  // links, permissions) are just skipped.
   for (const entry of entries) {
-    if (entry.isFile() && entry.name.toLowerCase() === targetNameLower) {
-      return path.join(dir, entry.name);
+    if (entry.name.toLowerCase() !== targetNameLower) continue;
+    try {
+      if (fs.statSync(path.join(dir, entry.name)).isFile()) return path.join(dir, entry.name);
+    } catch (_) {
+      // unresolvable entry — keep looking
     }
   }
   for (const entry of entries) {
-    if (entry.isDirectory()) {
+    let isDir;
+    try {
+      isDir = fs.statSync(path.join(dir, entry.name)).isDirectory();
+    } catch (_) {
+      continue;
+    }
+    if (isDir) {
       const found = searchForFile(path.join(dir, entry.name), targetNameLower, depthRemaining - 1);
       if (found) return found;
     }
