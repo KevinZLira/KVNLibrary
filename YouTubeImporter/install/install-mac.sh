@@ -43,17 +43,17 @@ fi
 
 if [ "$MISSING" -eq 1 ]; then
   if command -v brew >/dev/null 2>&1; then
-    read -p "Deseja instalar as dependências ausentes agora via Homebrew? [s/N] " ANSWER
-    if [[ "$ANSWER" =~ ^[Ss]$ ]]; then
-      brew install yt-dlp ffmpeg
-    else
-      echo "Você pode instalar depois com: brew install yt-dlp ffmpeg"
-    fi
+    echo "Instalando dependências ausentes via Homebrew (isso pode levar um minuto)..."
+    brew install yt-dlp ffmpeg
   else
-    echo "Homebrew não encontrado. Veja o README.md para instruções de instalação manual."
+    echo "Homebrew não encontrado. Veja o README.md para instruções de instalação manual (yt-dlp e ffmpeg)."
   fi
 fi
 
 echo ""
-echo "Concluído. Reinicie o Adobe Premiere Pro e abra:"
-echo "  Window > Extensions > YouTube Importer"
+echo "===================================================="
+echo "Concluído! Feche esta janela e:"
+echo "  1. Feche o Adobe Premiere Pro (se estiver aberto)"
+echo "  2. Abra o Adobe Premiere Pro de novo"
+echo "  3. Vá em: Window > Extensions > YouTube Importer"
+echo "===================================================="

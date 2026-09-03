@@ -10,6 +10,32 @@ URL → Carregar → Escolher trecho → Escolher mídia → Importar
 
 ---
 
+## Instalação rápida (2 cliques)
+
+1. Baixe o ZIP do projeto e extraia em qualquer pasta.
+2. Abra a pasta **`YouTubeImporter`** e dê **duplo clique**:
+   - **Windows:** `INSTALAR.bat`
+   - **macOS:** `INSTALAR.command`
+3. Uma janela preta (terminal) vai abrir sozinha, instalar tudo automaticamente
+   (inclusive o yt-dlp/ffmpeg, se ainda não estiverem no computador) e mostrar
+   "Concluído!" no final. Aperte Enter para fechar essa janela.
+4. Feche e abra o Adobe Premiere Pro de novo, abra um projeto, e vá em
+   **Window → Extensions → YouTube Importer**.
+
+Pronto — não precisa saber nada de Terminal/PowerShell nem instalar mais nada
+manualmente para o uso normal.
+
+**No macOS**, ao dar duplo clique pela primeira vez, o Gatekeeper pode avisar
+que o arquivo "não pôde ser aberto porque é de um desenvolvedor não
+identificado" (normal para qualquer script baixado da internet, não é vírus).
+Se isso acontecer: clique com o botão direito no `INSTALAR.command` → **Abrir**
+→ confirme **Abrir** na janela que aparecer. Só precisa fazer isso uma vez.
+
+Se algo der errado nesse processo simplificado, os passos manuais completos
+(úteis para diagnosticar problemas) estão nas seções abaixo.
+
+---
+
 ## Sumário
 
 1. [Arquitetura](#arquitetura)
@@ -141,9 +167,14 @@ ffmpeg -version
 
 ### Passo 1 — Copiar a extensão
 
-Use o instalador do seu sistema (copia os arquivos para a pasta de extensões
-CEP do usuário e habilita o modo de debug, necessário porque esta extensão
-não está assinada com um certificado Adobe):
+O jeito mais simples é dar duplo clique em `INSTALAR.command` (macOS) ou
+`INSTALAR.bat` (Windows) na raiz do projeto — veja
+[Instalação rápida](#instalação-rápida-2-cliques) no topo deste README.
+
+Se preferir rodar via linha de comando (útil para diagnosticar problemas),
+os scripts por trás do duplo clique são estes — eles copiam os arquivos para
+a pasta de extensões CEP do usuário e habilitam o modo de debug, necessário
+porque esta extensão não está assinada com um certificado Adobe:
 
 **macOS:**
 
@@ -157,8 +188,8 @@ bash install/install-mac.sh
 powershell -ExecutionPolicy Bypass -File install\install-win.ps1
 ```
 
-Os scripts também detectam se `yt-dlp`/`ffmpeg` estão ausentes e oferecem
-instalá-los via Homebrew/winget.
+Os scripts também detectam se `yt-dlp`/`ffmpeg` estão ausentes e instalam
+automaticamente via Homebrew/winget quando disponíveis.
 
 ### Passo 2 — Instalação manual (alternativa)
 
@@ -341,6 +372,8 @@ um bug e deve ser reportado.
 
 ```
 YouTubeImporter/
+├── INSTALAR.bat              # Duplo clique para instalar (Windows)
+├── INSTALAR.command          # Duplo clique para instalar (macOS)
 ├── CSXS/
 │   └── manifest.xml          # Manifesto da extensão CEP
 ├── .debug                    # Configuração de debug remoto (Chrome DevTools)

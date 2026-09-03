@@ -37,18 +37,18 @@ if (-not $ffmpeg) { Write-Host "  - ffmpeg NAO encontrado." } else { Write-Host 
 if (-not $ytdlp -or -not $ffmpeg) {
     $winget = Get-Command winget -ErrorAction SilentlyContinue
     if ($winget) {
-        $answer = Read-Host "Deseja instalar as dependencias ausentes agora via winget? [s/N]"
-        if ($answer -match '^[sS]$') {
-            if (-not $ytdlp) { winget install --id yt-dlp.yt-dlp -e }
-            if (-not $ffmpeg) { winget install --id Gyan.FFmpeg -e }
-        } else {
-            Write-Host "Voce pode instalar depois. Veja o README.md para instrucoes."
-        }
+        Write-Host "Instalando dependencias ausentes via winget (isso pode levar um minuto)..."
+        if (-not $ytdlp) { winget install --id yt-dlp.yt-dlp -e --accept-package-agreements --accept-source-agreements }
+        if (-not $ffmpeg) { winget install --id Gyan.FFmpeg -e --accept-package-agreements --accept-source-agreements }
     } else {
         Write-Host "winget nao encontrado. Veja o README.md para instrucoes de instalacao manual."
     }
 }
 
 Write-Host ""
-Write-Host "Concluido. Reinicie o Adobe Premiere Pro e abra:"
-Write-Host "  Window > Extensions > YouTube Importer"
+Write-Host "===================================================="
+Write-Host "Concluido! Feche esta janela e:"
+Write-Host "  1. Feche o Adobe Premiere Pro (se estiver aberto)"
+Write-Host "  2. Abra o Adobe Premiere Pro de novo"
+Write-Host "  3. Va em: Window > Extensions > YouTube Importer"
+Write-Host "===================================================="
