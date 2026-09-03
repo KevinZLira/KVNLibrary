@@ -5,6 +5,17 @@ const path = require('path');
 const { URL } = require('url'); // don't rely on the global `URL` — not present on the older Node some CEP builds bundle
 const { fromRaw, ImporterError } = require('./errors');
 
+/**
+ * Forces yt-dlp's "android" player client. YouTube's anti-bot checks
+ * (PO tokens, SABR streaming enforcement) currently reject the default
+ * client selection with a bare HTTP 403 on some networks/accounts even on
+ * the latest yt-dlp release — confirmed by testing several player clients
+ * directly; "android" was the one that worked. This is an active,
+ * ever-shifting fight between YouTube and every downloader tool, so this
+ * choice may need revisiting again later if YouTube closes this path too.
+ */
+const YOUTUBE_EXTRACTOR_ARGS = ['--extractor-args', 'youtube:player_client=android'];
+
 /** Extracts the YouTube video ID from any of the accepted URL shapes. */
 function extractVideoId(rawUrl) {
   if (!rawUrl) return null;
@@ -60,7 +71,7 @@ function getVideoInfo(ytdlpPath, rawUrl) {
       return;
     }
 
-    const args = ['-J', '--no-warnings', '--no-playlist', '--no-check-certificates', url];
+    const args = ['-J', '--no-warnings', '--no-playlist', '--no-check-certificates', ...YOUTUBE_EXTRACTOR_ARGS, url];
     const child = spawn(ytdlpPath, args, { windowsHide: true });
 
     let stdout = '';
@@ -178,6 +189,7 @@ function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, 
     '--ffmpeg-location', ffmpegDir,
     '-o', outputTemplate,
     '--print', 'after_move:filepath',
+    ...YOUTUBE_EXTRACTOR_ARGS,
   ];
   if (useSections) {
     const section = `*${secToClock(startSeconds)}-${secToClock(endSeconds)}`;
