@@ -88,11 +88,34 @@ async function extractAudioToWav(ffmpegPath, inputPath, outputPath, onProgress) 
   await run(ffmpegPath, args, onProgress);
 }
 
-/** Fallback exact trim by re-encoding, used only if a caller needs frame-accurate cuts post-download. */
-async function trimExact(ffmpegPath, inputPath, outputPath, startSeconds, endSeconds, onProgress) {
-  const duration = Math.max(0, endSeconds - startSeconds);
-  const args = ['-ss', String(startSeconds), '-i', inputPath, '-t', String(duration), '-c:v', 'libx264', '-c:a', 'aac', outputPath];
+/**
+ * Trims [startSeconds,endSeconds] out of a full-length download and
+ * transcodes to Premiere-safe H.264/AAC in the same pass. Used when the
+ * server-side section download failed (see ytdlp.js's `useSections`) and we
+ * fell back to a full download that still needs cutting locally.
+ */
+async function trimToCompatibleVideo(ffmpegPath, inputPath, outputPath, startSeconds, endSeconds, hasAudio, onProgress) {
+  const duration = Math.max(0.1, endSeconds - startSeconds);
+  const args = ['-ss', String(startSeconds), '-i', inputPath, '-t', String(duration), '-c:v', 'libx264', '-preset', 'fast', '-crf', '18', '-pix_fmt', 'yuv420p'];
+  if (hasAudio) args.push('-c:a', 'aac', '-b:a', '192k');
+  else args.push('-an');
+  args.push(outputPath);
   await run(ffmpegPath, args, onProgress);
 }
 
-module.exports = { run, ensurePremiereCompatibleVideo, extractAudioToWav, trimExact, probeFilePath, cancelCurrent };
+/** Same idea as trimToCompatibleVideo but for the audio-only pipeline (WAV output). */
+async function trimToWav(ffmpegPath, inputPath, outputPath, startSeconds, endSeconds, onProgress) {
+  const duration = Math.max(0.1, endSeconds - startSeconds);
+  const args = ['-ss', String(startSeconds), '-i', inputPath, '-t', String(duration), '-vn', '-acodec', 'pcm_s16le', '-ar', '48000', '-ac', '2', outputPath];
+  await run(ffmpegPath, args, onProgress);
+}
+
+module.exports = {
+  run,
+  ensurePremiereCompatibleVideo,
+  extractAudioToWav,
+  trimToCompatibleVideo,
+  trimToWav,
+  probeFilePath,
+  cancelCurrent,
+};

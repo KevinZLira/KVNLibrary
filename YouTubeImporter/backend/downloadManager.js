@@ -115,9 +115,15 @@ async function runPipeline(jobId, control, params, onProgress) {
   const tempRoot = path.join(downloadDir, '.yti-temp', jobId);
   fsUtils.ensureDir(tempRoot);
 
-  try {
-    onProgress({ stage: 'downloading', percent: 0 });
+  // Errors in this set won't be fixed by retrying with a full (unsectioned)
+  // download, so don't waste time/bandwidth attempting it.
+  const NON_RETRYABLE_CODES = new Set([
+    'CANCELLED', 'VIDEO_PRIVATE', 'VIDEO_UNAVAILABLE', 'VIDEO_REMOVED',
+    'VIDEO_AGE_RESTRICTED', 'VIDEO_MEMBERS_ONLY', 'VIDEO_UPCOMING_LIVE',
+    'URL_INVALID', 'YTDLP_MISSING', 'FFMPEG_MISSING', 'DISK_FULL', 'CLIP_INVALID',
+  ]);
 
+  async function runYtdlpDownload(useSections) {
     const outputTemplate = path.join(tempRoot, '%(id)s.%(ext)s');
     const { child, donePromise } = ytdlp.downloadSection(
       {
@@ -129,6 +135,7 @@ async function runPipeline(jobId, control, params, onProgress) {
         formatSelector: plan.selector,
         mergeToMp4: plan.mergeToMp4,
         outputTemplate,
+        useSections,
       },
       (evt) => onProgress(evt)
     );
@@ -140,9 +147,37 @@ async function runPipeline(jobId, control, params, onProgress) {
       throw new ImporterError('CANCELLED', 'Download cancelado pelo usuário.');
     }
 
-    const resolvedRaw = rawFilePath && fs.existsSync(rawFilePath) ? rawFilePath : findDownloadedFile(tempRoot);
-    if (!resolvedRaw) {
+    const resolved = rawFilePath && fs.existsSync(rawFilePath) ? rawFilePath : findDownloadedFile(tempRoot);
+    if (!resolved) {
       throw new ImporterError('UNKNOWN', friendlyMessage('UNKNOWN'), 'yt-dlp did not report an output file');
+    }
+    return resolved;
+  }
+
+  try {
+    onProgress({ stage: 'downloading', percent: 0 });
+
+    // Fast path: ask yt-dlp for only the requested section. This hands the
+    // actual byte range fetch to ffmpeg as an "external downloader", talking
+    // to YouTube's CDN directly without yt-dlp's own session/headers —
+    // YouTube's anti-bot checks can 403 that even when a normal download
+    // works fine. When that happens, fall back to downloading the whole
+    // video through yt-dlp's native (more robust) downloader and trim it
+    // locally with ffmpeg afterward instead.
+    let resolvedRaw;
+    let trimmedByServer = true;
+    try {
+      resolvedRaw = await runYtdlpDownload(true);
+    } catch (sectionErr) {
+      if (control.cancelRequested || NON_RETRYABLE_CODES.has(sectionErr.code)) {
+        throw sectionErr;
+      }
+      onProgress({
+        stage: 'notice',
+        message: 'Não foi possível baixar apenas o trecho diretamente do YouTube. Baixando o vídeo completo e cortando localmente...',
+      });
+      trimmedByServer = false;
+      resolvedRaw = await runYtdlpDownload(false);
     }
 
     onProgress({ stage: 'processing', message: 'Processando vídeo...' });
@@ -152,12 +187,26 @@ async function runPipeline(jobId, control, params, onProgress) {
     const finalPath = fsUtils.uniquePath(downloadDir, filename);
 
     if (mediaType === 'audio-only') {
-      await ffmpeg.extractAudioToWav(ffmpegPath, resolvedRaw, finalPath, (evt) => onProgress(evt));
-    } else {
+      if (trimmedByServer) {
+        await ffmpeg.extractAudioToWav(ffmpegPath, resolvedRaw, finalPath, (evt) => onProgress(evt));
+      } else {
+        await ffmpeg.trimToWav(ffmpegPath, resolvedRaw, finalPath, startSeconds, endSeconds, (evt) => onProgress(evt));
+      }
+    } else if (trimmedByServer) {
       await ffmpeg.ensurePremiereCompatibleVideo(
         ffmpegPath,
         resolvedRaw,
         finalPath,
+        mediaType === 'video-audio',
+        (evt) => onProgress(evt)
+      );
+    } else {
+      await ffmpeg.trimToCompatibleVideo(
+        ffmpegPath,
+        resolvedRaw,
+        finalPath,
+        startSeconds,
+        endSeconds,
         mediaType === 'video-audio',
         (evt) => onProgress(evt)
       );

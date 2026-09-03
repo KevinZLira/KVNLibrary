@@ -156,17 +156,21 @@ function resolveFormatPlan(mediaType, quality, availableHeights) {
 }
 
 /**
- * Downloads only the requested [start,end] section of the video (yt-dlp
- * --download-sections, backed by ffmpeg) into `outputTemplate`. Streams
- * progress events; returns the child process handle so the caller can cancel.
+ * Downloads the requested video. When `useSections` is true (the default,
+ * fast path), only the [start,end] section is fetched via yt-dlp
+ * --download-sections — but that hands the actual byte-range request to
+ * ffmpeg as an "external downloader", talking to YouTube's CDN directly
+ * without yt-dlp's own session/headers. YouTube's anti-bot measures can
+ * reject that with a 403 even though yt-dlp's own (non-ffmpeg) downloader
+ * works fine — in which case the caller should retry with `useSections:
+ * false` to fetch the whole video through yt-dlp's native downloader and
+ * trim it locally afterward instead. Streams progress events; returns the
+ * child process handle so the caller can cancel.
  */
-function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, formatSelector, mergeToMp4, outputTemplate }, onProgress) {
-  const section = `*${secToClock(startSeconds)}-${secToClock(endSeconds)}`;
+function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, formatSelector, mergeToMp4, outputTemplate, useSections = true }, onProgress) {
   const args = [
     normalizeUrl(url),
     '-f', formatSelector,
-    '--download-sections', section,
-    '--force-keyframes-at-cuts',
     '--no-playlist',
     '--newline',
     '--no-check-certificates',
@@ -175,6 +179,10 @@ function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, 
     '-o', outputTemplate,
     '--print', 'after_move:filepath',
   ];
+  if (useSections) {
+    const section = `*${secToClock(startSeconds)}-${secToClock(endSeconds)}`;
+    args.push('--download-sections', section, '--force-keyframes-at-cuts');
+  }
   if (mergeToMp4) args.push('--merge-output-format', 'mp4');
 
   const child = spawn(ytdlpPath, args, { windowsHide: true });
