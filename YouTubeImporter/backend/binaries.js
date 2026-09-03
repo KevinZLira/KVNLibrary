@@ -158,15 +158,24 @@ function whichOnPath(binName) {
   return null;
 }
 
+/**
+ * ffmpeg uses its own single-dash CLI convention (-version), not the
+ * double-dash GNU style yt-dlp follows (--version) — confirmed by a real
+ * install where a valid, working ffmpeg.exe was rejected here because
+ * `--version` isn't a flag it recognizes. Try both rather than hardcode one.
+ */
 function verifyExecutable(candidatePath) {
   if (!candidatePath) return false;
-  try {
-    if (!fs.existsSync(candidatePath)) return false;
-    const res = spawnSync(candidatePath, ['--version'], { encoding: 'utf8', timeout: 8000 });
-    return res.status === 0;
-  } catch (_) {
-    return false;
+  if (!fs.existsSync(candidatePath)) return false;
+  for (const versionArg of ['--version', '-version']) {
+    try {
+      const res = spawnSync(candidatePath, [versionArg], { encoding: 'utf8', timeout: 8000 });
+      if (res.status === 0) return true;
+    } catch (_) {
+      // try the next flag
+    }
   }
+  return false;
 }
 
 /**
@@ -203,13 +212,4 @@ function locateAll(config) {
   };
 }
 
-module.exports = {
-  resolveBinary,
-  requireBinary,
-  locateAll,
-  verifyExecutable,
-  // exported for diagnostics (see: node -e "require('./backend/binaries')...")
-  findInWinGetPackages,
-  searchForFile,
-  whichOnPath,
-};
+module.exports = { resolveBinary, requireBinary, locateAll, verifyExecutable };
