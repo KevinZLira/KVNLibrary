@@ -29,6 +29,7 @@ const RULES = [
   [/Sign in to confirm your age/i, 'VIDEO_AGE_RESTRICTED'],
   [/Could not copy .*cookie database/i, 'COOKIES_BROWSER_LOCKED'],
   [/Could not find .*cookies database/i, 'COOKIES_BROWSER_LOCKED'],
+  [/Failed to decrypt with DPAPI/i, 'COOKIES_DPAPI_FAILED'],
   [/members-only/i, 'VIDEO_MEMBERS_ONLY'],
   [/live event will begin/i, 'VIDEO_UPCOMING_LIVE'],
   [/is not a valid URL/i, 'URL_INVALID'],
@@ -54,6 +55,8 @@ const MESSAGES = {
   VIDEO_AGE_RESTRICTED: 'Este vídeo tem restrição de idade e não pôde ser acessado sem login.',
   COOKIES_BROWSER_LOCKED:
     'Não foi possível ler os cookies do navegador porque ele está aberto (o arquivo de cookies fica travado enquanto o navegador roda). Feche o navegador completamente — confira no Gerenciador de Tarefas se não sobrou nenhum processo dele em segundo plano — e tente novamente.',
+  COOKIES_DPAPI_FAILED:
+    '--cookies-from-browser não funciona neste computador (navegadores baseados em Chrome mudaram a criptografia dos cookies e o yt-dlp ainda não lê de forma confiável em todo ambiente — bug conhecido). Use um cookies.txt exportado em vez disso: limpe o campo "Extra yt-dlp Args", exporte um cookies.txt do navegador (logado no YouTube) e configure o caminho em ⚙ Configurações > Auth // Cookies.',
   YOUTUBE_BOT_CHECK:
     'O YouTube pediu confirmação de que você não é um robô. Isso quase sempre significa que o arquivo cookies.txt configurado expirou ou está desatualizado. Exporte um novo cookies.txt do seu navegador (logado no YouTube) e atualize o caminho em ⚙ Configurações > Auth // Cookies.',
   VIDEO_MEMBERS_ONLY: 'Este vídeo é exclusivo para membros do canal e não pode ser baixado.',
