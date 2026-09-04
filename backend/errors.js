@@ -27,6 +27,8 @@ const RULES = [
   [/This video is no longer available/i, 'VIDEO_REMOVED'],
   [/Sign in to confirm you.{0,3}re not a bot/i, 'YOUTUBE_BOT_CHECK'],
   [/Sign in to confirm your age/i, 'VIDEO_AGE_RESTRICTED'],
+  [/Could not copy .*cookie database/i, 'COOKIES_BROWSER_LOCKED'],
+  [/Could not find .*cookies database/i, 'COOKIES_BROWSER_LOCKED'],
   [/members-only/i, 'VIDEO_MEMBERS_ONLY'],
   [/live event will begin/i, 'VIDEO_UPCOMING_LIVE'],
   [/is not a valid URL/i, 'URL_INVALID'],
@@ -50,6 +52,8 @@ const MESSAGES = {
   VIDEO_UNAVAILABLE: 'Este vídeo não está disponível no momento.',
   VIDEO_REMOVED: 'Este vídeo foi removido do YouTube.',
   VIDEO_AGE_RESTRICTED: 'Este vídeo tem restrição de idade e não pôde ser acessado sem login.',
+  COOKIES_BROWSER_LOCKED:
+    'Não foi possível ler os cookies do navegador porque ele está aberto (o arquivo de cookies fica travado enquanto o navegador roda). Feche o navegador completamente — confira no Gerenciador de Tarefas se não sobrou nenhum processo dele em segundo plano — e tente novamente.',
   YOUTUBE_BOT_CHECK:
     'O YouTube pediu confirmação de que você não é um robô. Isso quase sempre significa que o arquivo cookies.txt configurado expirou ou está desatualizado. Exporte um novo cookies.txt do seu navegador (logado no YouTube) e atualize o caminho em ⚙ Configurações > Auth // Cookies.',
   VIDEO_MEMBERS_ONLY: 'Este vídeo é exclusivo para membros do canal e não pode ser baixado.',
