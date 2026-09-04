@@ -25,6 +25,7 @@ const RULES = [
   [/Video unavailable/i, 'VIDEO_UNAVAILABLE'],
   [/has been removed/i, 'VIDEO_REMOVED'],
   [/This video is no longer available/i, 'VIDEO_REMOVED'],
+  [/Sign in to confirm you.{0,3}re not a bot/i, 'YOUTUBE_BOT_CHECK'],
   [/Sign in to confirm your age/i, 'VIDEO_AGE_RESTRICTED'],
   [/members-only/i, 'VIDEO_MEMBERS_ONLY'],
   [/live event will begin/i, 'VIDEO_UPCOMING_LIVE'],
@@ -49,6 +50,8 @@ const MESSAGES = {
   VIDEO_UNAVAILABLE: 'Este vídeo não está disponível no momento.',
   VIDEO_REMOVED: 'Este vídeo foi removido do YouTube.',
   VIDEO_AGE_RESTRICTED: 'Este vídeo tem restrição de idade e não pôde ser acessado sem login.',
+  YOUTUBE_BOT_CHECK:
+    'O YouTube pediu confirmação de que você não é um robô. Isso quase sempre significa que o arquivo cookies.txt configurado expirou ou está desatualizado. Exporte um novo cookies.txt do seu navegador (logado no YouTube) e atualize o caminho em ⚙ Configurações > Auth // Cookies.',
   VIDEO_MEMBERS_ONLY: 'Este vídeo é exclusivo para membros do canal e não pode ser baixado.',
   VIDEO_UPCOMING_LIVE: 'Este vídeo é uma transmissão ao vivo que ainda não começou.',
   URL_INVALID: 'URL inválida. Verifique se é um link válido do YouTube (youtube.com/watch?v=... ou youtu.be/...).',
