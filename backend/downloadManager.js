@@ -156,6 +156,22 @@ async function runPipeline(jobId, control, params, onProgress) {
     return resolved;
   }
 
+  // --download-sections routes the byte fetch through ffmpeg acting as an
+  // "external downloader" — a single connection, with none of yt-dlp's own
+  // multi-connection/retry logic, and no progress reporting our parser
+  // understands. For a short clip out of a long video that's still a huge
+  // win (a few MB instead of the whole file). But once the requested clip
+  // covers most of the video — or is just long in absolute terms — that
+  // trade-off flips: ffmpeg's slow single-connection fetch ends up moving
+  // almost as many bytes as the full video anyway, except much slower than
+  // yt-dlp's native downloader would. In that case skip straight to
+  // downloading the whole video natively and trimming locally afterward.
+  const clipDuration = endSeconds - startSeconds;
+  const coverageRatio = videoInfo.duration ? clipDuration / videoInfo.duration : 0;
+  const LARGE_CLIP_SECONDS = 180;
+  const LARGE_CLIP_COVERAGE = 0.5;
+  const skipSections = clipDuration >= LARGE_CLIP_SECONDS && coverageRatio >= LARGE_CLIP_COVERAGE;
+
   try {
     onProgress({ stage: 'downloading', percent: 0 });
 
@@ -168,18 +184,27 @@ async function runPipeline(jobId, control, params, onProgress) {
     // locally with ffmpeg afterward instead.
     let resolvedRaw;
     let trimmedByServer = true;
-    try {
-      resolvedRaw = await runYtdlpDownload(true);
-    } catch (sectionErr) {
-      if (control.cancelRequested || NON_RETRYABLE_CODES.has(sectionErr.code)) {
-        throw sectionErr;
-      }
+    if (skipSections) {
       onProgress({
         stage: 'notice',
-        message: 'Não foi possível baixar apenas o trecho diretamente do YouTube. Baixando o vídeo completo e cortando localmente...',
+        message: 'Trecho grande — baixando o vídeo completo (mais rápido que baixar só a seção) e cortando localmente...',
       });
       trimmedByServer = false;
       resolvedRaw = await runYtdlpDownload(false);
+    } else {
+      try {
+        resolvedRaw = await runYtdlpDownload(true);
+      } catch (sectionErr) {
+        if (control.cancelRequested || NON_RETRYABLE_CODES.has(sectionErr.code)) {
+          throw sectionErr;
+        }
+        onProgress({
+          stage: 'notice',
+          message: 'Não foi possível baixar apenas o trecho diretamente do YouTube. Baixando o vídeo completo e cortando localmente...',
+        });
+        trimmedByServer = false;
+        resolvedRaw = await runYtdlpDownload(false);
+      }
     }
 
     onProgress({ stage: 'processing', message: 'Processando vídeo...' });
