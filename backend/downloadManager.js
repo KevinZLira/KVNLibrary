@@ -123,6 +123,11 @@ async function runPipeline(jobId, control, params, onProgress) {
     'URL_INVALID', 'YTDLP_MISSING', 'FFMPEG_MISSING', 'DISK_FULL', 'CLIP_INVALID',
   ]);
 
+  // Metadata fetch already fell back to no-cookies (see ytdlp.js's
+  // getVideoInfo) if the configured cookies turned out to be expired — reuse
+  // that finding here instead of re-hitting the same wall on the download.
+  let effectiveCookiesPath = videoInfo.cookiesExpired ? '' : config.cookiesPath;
+
   async function runYtdlpDownload(useSections) {
     const outputTemplate = path.join(tempRoot, '%(id)s.%(ext)s');
     const { child, donePromise } = ytdlp.downloadSection(
@@ -137,7 +142,7 @@ async function runPipeline(jobId, control, params, onProgress) {
         outputTemplate,
         useSections,
         extraArgsString: config.extraYtdlpArgs,
-        cookiesPath: config.cookiesPath,
+        cookiesPath: effectiveCookiesPath,
       },
       (evt) => onProgress(evt)
     );
@@ -154,6 +159,29 @@ async function runPipeline(jobId, control, params, onProgress) {
       throw new ImporterError('UNKNOWN', friendlyMessage('UNKNOWN'), 'yt-dlp did not report an output file');
     }
     return resolved;
+  }
+
+  /**
+   * Configured cookies that were still valid at metadata-fetch time can
+   * still expire (or just behave inconsistently) by download time. If that
+   * happens, don't hard-fail: drop the cookies and retry once, same as the
+   * anonymous android-client path (lower quality, but it works) instead of
+   * blocking the import entirely.
+   */
+  async function runYtdlpDownloadWithCookieFallback(useSections) {
+    try {
+      return await runYtdlpDownload(useSections);
+    } catch (err) {
+      if (control.cancelRequested || err.code !== 'YOUTUBE_BOT_CHECK' || !effectiveCookiesPath) {
+        throw err;
+      }
+      effectiveCookiesPath = '';
+      onProgress({
+        stage: 'notice',
+        message: 'Cookies configurados parecem vencidos — baixando sem eles (qualidade pode ficar limitada a 360p)...',
+      });
+      return runYtdlpDownload(useSections);
+    }
   }
 
   // --download-sections routes the byte fetch through ffmpeg acting as an
@@ -190,10 +218,10 @@ async function runPipeline(jobId, control, params, onProgress) {
         message: 'Trecho grande — baixando o vídeo completo (mais rápido que baixar só a seção) e cortando localmente...',
       });
       trimmedByServer = false;
-      resolvedRaw = await runYtdlpDownload(false);
+      resolvedRaw = await runYtdlpDownloadWithCookieFallback(false);
     } else {
       try {
-        resolvedRaw = await runYtdlpDownload(true);
+        resolvedRaw = await runYtdlpDownloadWithCookieFallback(true);
       } catch (sectionErr) {
         if (control.cancelRequested || NON_RETRYABLE_CODES.has(sectionErr.code)) {
           throw sectionErr;
@@ -203,7 +231,7 @@ async function runPipeline(jobId, control, params, onProgress) {
           message: 'Não foi possível baixar apenas o trecho diretamente do YouTube. Baixando o vídeo completo e cortando localmente...',
         });
         trimmedByServer = false;
-        resolvedRaw = await runYtdlpDownload(false);
+        resolvedRaw = await runYtdlpDownloadWithCookieFallback(false);
       }
     }
 

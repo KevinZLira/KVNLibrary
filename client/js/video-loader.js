@@ -62,7 +62,11 @@
 
     return BackendBridge.getVideoInfo(url)
       .then(function (info) {
-        setStatus('Vídeo carregado com sucesso.');
+        if (info.cookiesExpired) {
+          setStatus('Vídeo carregado, mas os cookies configurados parecem vencidos — qualidade pode ficar limitada a 360p até você atualizar o cookies.txt.', true);
+        } else {
+          setStatus('Vídeo carregado com sucesso.');
+        }
         populateInfo(info);
       })
       .catch(function (err) {

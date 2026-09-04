@@ -108,19 +108,13 @@ function secToClock(totalSeconds) {
   return [hh, mm, ss].map((n) => String(n).padStart(2, '0')).join(':');
 }
 
-/** Runs `yt-dlp -J <url>` and returns the parsed metadata (title, duration, formats, ...). */
-function getVideoInfo(ytdlpPath, rawUrl, extraArgsString, cookiesPath) {
+/** Runs a single `yt-dlp -J <url>` attempt with the given client/cookies args and returns the parsed metadata. */
+function runVideoInfoAttempt(ytdlpPath, url, extraArgsString, clientArgs, cookiesArgs) {
   return new Promise((resolve, reject) => {
-    const url = normalizeUrl(rawUrl);
-    if (!isValidYoutubeUrl(url)) {
-      reject(fromRaw('invalid url', 'URL_INVALID'));
-      return;
-    }
-
     const args = [
       '-J', '--no-warnings', '--no-playlist', '--no-check-certificates',
-      ...buildClientOverrideArgs(!!String(cookiesPath || '').trim()),
-      ...buildCookiesArgs(cookiesPath),
+      ...clientArgs,
+      ...cookiesArgs,
       ...parseExtraArgs(extraArgsString),
       url,
     ];
@@ -148,6 +142,43 @@ function getVideoInfo(ytdlpPath, rawUrl, extraArgsString, cookiesPath) {
       }
     });
   });
+}
+
+/**
+ * Runs `yt-dlp -J <url>` and returns the parsed metadata (title, duration,
+ * formats, ...). When cookies are configured but have expired/gone stale,
+ * YouTube's anti-bot check rejects the session outright ("Sign in to
+ * confirm you're not a bot") instead of just degrading quality — worse than
+ * having no cookies at all, since configuring cookies also turns off the
+ * android-client fallback that works anonymously (just capped ~360p). So on
+ * that specific failure, retry once without cookies (forcing the android
+ * client) rather than hard-failing — same graceful degradation the user got
+ * before ever setting up cookies.
+ */
+async function getVideoInfo(ytdlpPath, rawUrl, extraArgsString, cookiesPath) {
+  const url = normalizeUrl(rawUrl);
+  if (!isValidYoutubeUrl(url)) {
+    throw fromRaw('invalid url', 'URL_INVALID');
+  }
+
+  const hasCookies = !!String(cookiesPath || '').trim();
+  try {
+    return await runVideoInfoAttempt(
+      ytdlpPath, url, extraArgsString,
+      buildClientOverrideArgs(hasCookies),
+      buildCookiesArgs(cookiesPath)
+    );
+  } catch (err) {
+    if (!hasCookies || err.code !== 'YOUTUBE_BOT_CHECK') throw err;
+    console.log('[YouTube Importer] Cookies configurados parecem expirados (bloqueio anti-bot) — tentando novamente sem cookies (qualidade pode ficar limitada).');
+    const fallback = await runVideoInfoAttempt(
+      ytdlpPath, url, extraArgsString,
+      buildClientOverrideArgs(false),
+      []
+    );
+    fallback.cookiesExpired = true;
+    return fallback;
+  }
 }
 
 function normalizeInfo(info) {
