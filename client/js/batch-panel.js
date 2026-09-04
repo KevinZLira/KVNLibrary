@@ -51,7 +51,8 @@
             if (evt.stage === 'downloading' && evt.percent != null) {
               setRowStatus(row, 'Baixando... ' + Math.round(evt.percent) + '%');
             } else if (evt.stage === 'processing') {
-              setRowStatus(row, 'Processando vídeo...');
+              var pct = evt.percent != null ? Math.round(evt.percent) : null;
+              setRowStatus(row, 'Processando vídeo...' + (pct !== null ? ' ' + pct + '%' : ''));
             }
           }
         );

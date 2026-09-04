@@ -213,11 +213,25 @@ async function runPipeline(jobId, control, params, onProgress) {
     const filename = fsUtils.buildClipFilename(videoInfo.title, startSeconds, endSeconds, ext);
     const finalPath = fsUtils.uniquePath(downloadDir, filename);
 
+    // ffmpeg's own '-progress' output gives us out_time_ms but no percent —
+    // turn that into a real percentage against the clip length so a slow
+    // transcode still visibly advances instead of looking frozen at
+    // "Processando vídeo..." for minutes on end.
+    const processingTotalMs = Math.max(0.1, endSeconds - startSeconds) * 1000;
+    function onProcessingProgress(evt) {
+      if (evt.stage === 'processing' && evt.outTimeMs != null) {
+        const percent = Math.max(0, Math.min(100, (evt.outTimeMs / processingTotalMs) * 100));
+        onProgress(Object.assign({}, evt, { percent }));
+      } else {
+        onProgress(evt);
+      }
+    }
+
     if (mediaType === 'audio-only') {
       if (trimmedByServer) {
-        await ffmpeg.extractAudioToWav(ffmpegPath, resolvedRaw, finalPath, (evt) => onProgress(evt));
+        await ffmpeg.extractAudioToWav(ffmpegPath, resolvedRaw, finalPath, onProcessingProgress);
       } else {
-        await ffmpeg.trimToWav(ffmpegPath, resolvedRaw, finalPath, startSeconds, endSeconds, (evt) => onProgress(evt));
+        await ffmpeg.trimToWav(ffmpegPath, resolvedRaw, finalPath, startSeconds, endSeconds, onProcessingProgress);
       }
     } else if (trimmedByServer) {
       await ffmpeg.ensurePremiereCompatibleVideo(
@@ -225,7 +239,7 @@ async function runPipeline(jobId, control, params, onProgress) {
         resolvedRaw,
         finalPath,
         mediaType === 'video-audio',
-        (evt) => onProgress(evt)
+        onProcessingProgress
       );
     } else {
       await ffmpeg.trimToCompatibleVideo(
@@ -235,7 +249,7 @@ async function runPipeline(jobId, control, params, onProgress) {
         startSeconds,
         endSeconds,
         mediaType === 'video-audio',
-        (evt) => onProgress(evt)
+        onProcessingProgress
       );
     }
 

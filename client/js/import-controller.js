@@ -52,9 +52,10 @@
       if (evt.eta) bits.push('ETA ' + evt.eta);
       el('progress-details').textContent = bits.join(' • ');
     } else if (evt.stage === 'processing' || evt.stage === 'merging' || evt.stage === 'extracting-audio' || evt.stage === 'remuxing') {
-      setStage('Processando vídeo...');
-      el('progress-bar-fill').style.width = '100%';
-      el('progress-details').textContent = '';
+      var procPct = evt.percent != null ? Math.round(evt.percent) : null;
+      setStage('Processando vídeo...' + (procPct !== null ? ' ' + procPct + '%' : ''));
+      el('progress-bar-fill').style.width = (procPct !== null ? procPct : 100) + '%';
+      el('progress-details').textContent = evt.speed ? ('velocidade ' + evt.speed) : '';
     } else if (evt.stage === 'starting') {
       setStage('Iniciando download...');
     } else if (evt.stage === 'notice') {
