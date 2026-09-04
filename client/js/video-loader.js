@@ -66,6 +66,7 @@
         populateInfo(info);
       })
       .catch(function (err) {
+        console.error('[YouTube Importer] Falha ao carregar vídeo — código:', err && err.code, '| detalhes técnicos:', err && err.details, '| erro completo:', err);
         setStatus(err.message || 'Não foi possível carregar este vídeo.', true);
       })
       .finally(function () {
