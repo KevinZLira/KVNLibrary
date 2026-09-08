@@ -35,14 +35,17 @@ function formatMinSec(totalSeconds) {
   return `${pad2(m)}m${pad2(rem)}s`;
 }
 
+const PLATFORM_LABELS = { youtube: 'YouTube', tiktok: 'TikTok', instagram: 'Instagram' };
+
 /**
  * Builds the canonical import filename:
  * "[YouTube] Nome do Video [00m30s-01m45s].ext"
  */
-function buildClipFilename(title, startSeconds, endSeconds, ext) {
+function buildClipFilename(title, startSeconds, endSeconds, ext, platform) {
   const safeTitle = sanitizeFilename(title, 120);
   const range = `${formatMinSec(startSeconds)}-${formatMinSec(endSeconds)}`;
-  return `[YouTube] ${safeTitle} [${range}].${ext}`;
+  const label = PLATFORM_LABELS[platform] || 'YouTube';
+  return `[${label}] ${safeTitle} [${range}].${ext}`;
 }
 
 /** Returns a path guaranteed not to overwrite an existing file, appending " (1)", " (2)", ... */

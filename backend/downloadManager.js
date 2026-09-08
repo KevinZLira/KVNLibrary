@@ -103,7 +103,7 @@ async function runPipeline(jobId, control, params, onProgress) {
   if (!ytdlpPath) throw new ImporterError('YTDLP_MISSING', friendlyMessage('YTDLP_MISSING'));
   if (!ffmpegPath) throw new ImporterError('FFMPEG_MISSING', friendlyMessage('FFMPEG_MISSING'));
 
-  const plan = ytdlp.resolveFormatPlan(mediaType, quality, videoInfo.availableHeights);
+  const plan = ytdlp.resolveFormatPlan(mediaType, quality, videoInfo.availableHeights, videoInfo.platform);
   if (plan.downgraded) {
     onProgress({
       stage: 'notice',
@@ -143,6 +143,7 @@ async function runPipeline(jobId, control, params, onProgress) {
         useSections,
         extraArgsString: config.extraYtdlpArgs,
         cookiesPath: effectiveCookiesPath,
+        platform: videoInfo.platform,
       },
       (evt) => onProgress(evt)
     );
@@ -238,7 +239,7 @@ async function runPipeline(jobId, control, params, onProgress) {
     onProgress({ stage: 'processing', message: 'Processando vídeo...' });
 
     const ext = extensionFor(mediaType);
-    const filename = fsUtils.buildClipFilename(videoInfo.title, startSeconds, endSeconds, ext);
+    const filename = fsUtils.buildClipFilename(videoInfo.title, startSeconds, endSeconds, ext, videoInfo.platform);
     const finalPath = fsUtils.uniquePath(downloadDir, filename);
 
     // ffmpeg's own '-progress' output gives us out_time_ms but no percent —

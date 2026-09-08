@@ -17,7 +17,7 @@
     return el('batch-input').value
       .split('\n')
       .map(function (l) { return l.trim(); })
-      .filter(function (l) { return l && BackendBridge.isValidYoutubeUrl(l); });
+      .filter(function (l) { return l && BackendBridge.isSupportedUrl(l); });
   }
 
   function renderItem(url, status) {

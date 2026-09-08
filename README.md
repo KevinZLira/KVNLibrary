@@ -1,8 +1,11 @@
 # YouTube Importer — Extensão para Adobe Premiere Pro
 
-Painel nativo do Premiere Pro para colar uma URL do YouTube, escolher exatamente
-o trecho desejado e importá-lo direto para o **Project Panel** ou para a
-**Timeline**, sem precisar abrir o Terminal ou baixar o vídeo inteiro manualmente.
+Painel nativo do Premiere Pro para colar uma URL do **YouTube, TikTok ou
+Instagram**, escolher exatamente o trecho desejado e importá-lo direto para o
+**Project Panel** ou para a **Timeline**, sem precisar abrir o Terminal ou
+baixar o vídeo inteiro manualmente. Vídeos do TikTok são baixados **sem a
+marca d'água** (usa o stream original do player, não o "salvar vídeo" do app,
+que grava a marca por cima).
 
 ```
 URL → Carregar → Escolher trecho → Escolher mídia → Importar
@@ -228,12 +231,16 @@ automaticamente).
 
 ### Importar um vídeo
 
-1. Copie a URL do vídeo no YouTube (`youtube.com/watch?v=...`, `youtu.be/...`
-   ou com parâmetros extras — todos são aceitos).
-2. Cole no campo **"Cole a URL do YouTube..."** e clique em **Carregar** (ou
-   arraste o link diretamente para dentro do painel).
-3. O painel mostra miniatura, título, canal, duração e (quando possível) uma
-   prévia reproduzível do vídeo.
+1. Copie a URL do vídeo — **YouTube** (`youtube.com/watch?v=...`, `youtu.be/...`,
+   `/shorts/...`), **TikTok** (`tiktok.com/@usuario/video/...`, links curtos
+   `vm.tiktok.com/...`) ou **Instagram** (`instagram.com/reel/...`,
+   `instagram.com/p/...`) são todos aceitos.
+2. Cole no campo **"Cole a URL do YouTube, TikTok ou Instagram..."** e clique
+   em **Carregar** (ou arraste o link diretamente para dentro do painel).
+3. O painel mostra miniatura, título, canal e duração. A prévia reproduzível
+   embutida (com os botões "definir início/fim atual") só existe para
+   YouTube — para TikTok/Instagram, defina o trecho digitando os tempos
+   manualmente (esses vídeos costumam ser curtos, então não é um problema).
 
 ### Selecionar o trecho
 
@@ -304,15 +311,19 @@ Na aba **⚙ Configurações**:
   automática não encontrar os executáveis.
 - **Cache** e **limpeza automática de arquivos temporários** — ligar/desligar.
 - **Cookies** — caminho de um arquivo `cookies.txt` (formato Netscape)
-  exportado de um navegador logado no YouTube. Costuma destravar qualidade
-  bem melhor quando o YouTube limita downloads anônimos (confirmado em
-  testes reais — com cookies válidos, o yt-dlp consegue o catálogo completo
-  de formatos até 1080p+; sem cookies, algumas sessões ficam limitadas a
-  360p). Para exportar: instale a extensão **"Get cookies.txt LOCALLY"** no
-  seu navegador, abra youtube.com logado, exporte os cookies do site e
-  aponte este campo para o arquivo salvo. Evite `--cookies-from-browser`
-  manual no Windows — costuma falhar por causa da criptografia de cookies
-  do Chrome/Brave/Edge; um arquivo exportado não tem esse problema.
+  exportado de um navegador logado na plataforma que for baixar. Para
+  **YouTube**, costuma destravar qualidade bem melhor quando ele limita
+  downloads anônimos (confirmado em testes reais — com cookies válidos, o
+  yt-dlp consegue o catálogo completo de formatos até 1080p+; sem cookies,
+  algumas sessões ficam limitadas a 360p). Para **Instagram, é praticamente
+  obrigatório** — quase todo conteúdo (reels, posts) exige uma sessão
+  logada para baixar; sem cookies, espere erros de "login required". Para
+  exportar: instale a extensão **"Get cookies.txt LOCALLY"** no seu
+  navegador, abra o site logado (youtube.com ou instagram.com), exporte os
+  cookies do site e aponte este campo para o arquivo salvo. Evite
+  `--cookies-from-browser` manual no Windows — costuma falhar por causa da
+  criptografia de cookies do Chrome/Brave/Edge; um arquivo exportado não tem
+  esse problema.
 - **Argumentos extras do yt-dlp** — campo livre repassado a toda chamada do
   yt-dlp. É a válvula de escape para quando o YouTube muda alguma proteção
   e a comunidade descobre um novo parâmetro de contorno (ex.:
@@ -352,8 +363,9 @@ Chrome — mas o DevTools continua sendo a forma mais completa de investigar.
 |---|---|
 | "yt-dlp não foi encontrado" | Instale o yt-dlp (veja acima) ou informe o caminho manualmente em Configurações. |
 | "FFmpeg não foi encontrado" | Instale o FFmpeg (veja acima) ou informe o caminho manualmente em Configurações. |
-| "URL inválida" | Confirme que é um link de vídeo único do YouTube (`watch?v=`, `youtu.be/`, `/shorts/`). Playlists inteiras não são suportadas — cole o link do vídeo específico. |
-| "Este vídeo é privado / foi removido / não está disponível" | O vídeo não pode ser baixado por restrição do próprio YouTube; não há como contornar isso. |
+| "URL inválida" | Confirme que é um link de vídeo único do YouTube (`watch?v=`, `youtu.be/`, `/shorts/`), TikTok (`tiktok.com/@usuario/video/...`) ou Instagram (`instagram.com/reel/...`, `/p/...`). Playlists inteiras não são suportadas — cole o link do vídeo específico. |
+| "Este vídeo é privado / foi removido / não está disponível" | O vídeo não pode ser baixado por restrição da própria plataforma; não há como contornar isso. |
+| "O Instagram bloqueou o acesso a este conteúdo" / erro de login | Configure um `cookies.txt` exportado do navegador logado no Instagram em ⚙ Configurações — a esmagadora maioria do conteúdo do Instagram exige uma sessão logada para download. |
 | "A conexão com a internet foi perdida" | Verifique sua rede e tente novamente; o cache evita ter que rebaixar trechos já concluídos. |
 | "Não há espaço suficiente em disco" | Libere espaço na pasta de downloads configurada ou aponte para outro volume em Configurações. |
 | "Não há nenhuma sequência aberta" | Abra ou crie uma sequência no Premiere antes de clicar em "Enviar para Timeline". O arquivo já foi importado para o Project Panel normalmente. |
@@ -374,9 +386,15 @@ um bug e deve ser reportado.
 
 - **Atalho de teclado para abrir o painel**: não há API pública do Premiere
   para uma extensão registrar isso sozinha (ver seção de instalação acima).
-- **Prévia interativa**: usa a YouTube IFrame Player API, que exige acesso à
-  internet dentro do painel. Sem conexão, a prévia é ocultada mas a seleção
-  manual de início/fim continua funcionando normalmente.
+- **Prévia interativa**: existe só para YouTube (usa a YouTube IFrame Player
+  API, que exige acesso à internet dentro do painel). Sem conexão, ou para
+  TikTok/Instagram, a prévia é ocultada mas a seleção manual de início/fim
+  continua funcionando normalmente.
+- **TikTok sem marca d'água**: depende do yt-dlp continuar priorizando o
+  stream original (`play_addr`) sobre o formato com marca (`download_addr`)
+  — isso já quebrou e foi corrigido pelo yt-dlp antes, então se voltar a
+  baixar com marca, é sinal de que precisa atualizar o yt-dlp (⚙
+  Configurações → Atualizar yt-dlp).
 - **Detecção de binários**: `yt-dlp`/`ffmpeg` precisam estar instalados no
   sistema (não são distribuídos junto da extensão) — isso mantém o pacote
   pequeno e sempre atualizado com a versão mais recente dessas ferramentas,

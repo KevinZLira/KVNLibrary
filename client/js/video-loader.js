@@ -37,21 +37,30 @@
 
     document.dispatchEvent(new CustomEvent('yti:video-loaded', { detail: info }));
 
-    YoutubePreview.load(info.id).then(function () {
-      el('preview-card').classList.remove('hidden');
-    }).catch(function () {
+    // Live scrub preview only exists for YouTube (IFrame Player API). For
+    // TikTok/Instagram, hide the preview card and the "definir atual"
+    // buttons that depend on it — trim still works via manual time entry.
+    el('set-start-btn').classList.toggle('hidden', info.platform !== 'youtube');
+    el('set-end-btn').classList.toggle('hidden', info.platform !== 'youtube');
+    if (info.platform === 'youtube') {
+      YoutubePreview.load(info.id).then(function () {
+        el('preview-card').classList.remove('hidden');
+      }).catch(function () {
+        el('preview-card').classList.add('hidden');
+      });
+    } else {
       el('preview-card').classList.add('hidden');
-    });
+    }
   }
 
   function loadUrl(rawUrl) {
     var url = (rawUrl || el('url-input').value || '').trim();
     if (!url) {
-      setStatus('Cole uma URL do YouTube.', true);
+      setStatus('Cole uma URL do YouTube, TikTok ou Instagram.', true);
       return Promise.resolve();
     }
-    if (!BackendBridge.isValidYoutubeUrl(url)) {
-      setStatus('URL inválida. Use um link como https://www.youtube.com/watch?v=... ou https://youtu.be/...', true);
+    if (!BackendBridge.isSupportedUrl(url)) {
+      setStatus('URL inválida. Use um link do YouTube, TikTok ou Instagram.', true);
       return Promise.resolve();
     }
 
@@ -103,13 +112,13 @@
       document.dispatchEvent(new CustomEvent('yti:favorites-changed'));
     });
 
-    // Drag & drop a YouTube link straight onto the panel.
+    // Drag & drop a video link straight onto the panel.
     var dropZone = el('app');
     dropZone.addEventListener('dragover', function (e) { e.preventDefault(); });
     dropZone.addEventListener('drop', function (e) {
       e.preventDefault();
       var text = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
-      if (text && BackendBridge.isValidYoutubeUrl(text.trim())) {
+      if (text && BackendBridge.isSupportedUrl(text.trim())) {
         el('url-input').value = text.trim();
         loadUrl(text.trim());
       }

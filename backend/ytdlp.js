@@ -90,6 +90,40 @@ function isValidYoutubeUrl(rawUrl) {
   return extractVideoId(rawUrl) !== null;
 }
 
+const PLATFORM_HOSTS = {
+  youtube: ['youtube.com', 'youtu.be', 'youtube-nocookie.com', 'music.youtube.com'],
+  tiktok: ['tiktok.com'],
+  instagram: ['instagram.com'],
+};
+
+/**
+ * Identifies which supported platform a URL belongs to (or null). Doubles as
+ * the app's URL validity check — TikTok/Instagram links aren't parsed for a
+ * specific video ID client-side (unlike YouTube's extractVideoId), they're
+ * just handed to yt-dlp as-is once we know the host is one we support.
+ */
+function detectPlatform(rawUrl) {
+  if (!rawUrl) return null;
+  let url;
+  try {
+    url = new URL(String(rawUrl).trim());
+  } catch (_) {
+    return null;
+  }
+  const host = url.hostname.replace(/^www\./, '').replace(/^m\./, '').replace(/^vm\./, '').replace(/^vt\./, '');
+  const platforms = Object.keys(PLATFORM_HOSTS);
+  for (let i = 0; i < platforms.length; i++) {
+    const platform = platforms[i];
+    const hosts = PLATFORM_HOSTS[platform];
+    if (hosts.some((h) => host === h || host.endsWith('.' + h))) return platform;
+  }
+  return null;
+}
+
+function isSupportedUrl(rawUrl) {
+  return detectPlatform(rawUrl) !== null;
+}
+
 function buildCookiesArgs(cookiesPath) {
   const trimmed = String(cookiesPath || '').trim();
   return trimmed ? ['--cookies', trimmed] : [];
@@ -146,28 +180,50 @@ function runVideoInfoAttempt(ytdlpPath, url, extraArgsString, clientArgs, cookie
 
 /**
  * Runs `yt-dlp -J <url>` and returns the parsed metadata (title, duration,
- * formats, ...). When cookies are configured but have expired/gone stale,
- * YouTube's anti-bot check rejects the session outright ("Sign in to
- * confirm you're not a bot") instead of just degrading quality — worse than
- * having no cookies at all, since configuring cookies also turns off the
- * android-client fallback that works anonymously (just capped ~360p). So on
- * that specific failure, retry once without cookies (forcing the android
- * client) rather than hard-failing — same graceful degradation the user got
- * before ever setting up cookies.
+ * formats, ...) for any supported platform (YouTube, TikTok, Instagram).
+ *
+ * The android-client-override / bot-check-retry dance below is YouTube-only:
+ * TikTok and Instagram don't have an equivalent "anonymous fallback client"
+ * concept in yt-dlp, and forcing youtube:player_client on their URLs would
+ * just be a silently-ignored no-op arg — so it's skipped entirely for them,
+ * cookies (if configured) are passed straight through, and whatever error
+ * comes back is classified normally.
+ *
+ * For YouTube specifically: when cookies are configured but have
+ * expired/gone stale, YouTube's anti-bot check rejects the session outright
+ * ("Sign in to confirm you're not a bot") instead of just degrading quality
+ * — worse than having no cookies at all, since configuring cookies also
+ * turns off the android-client fallback that works anonymously (just capped
+ * ~360p). So on that specific failure, retry once without cookies (forcing
+ * the android client) rather than hard-failing — same graceful degradation
+ * the user got before ever setting up cookies.
  */
 async function getVideoInfo(ytdlpPath, rawUrl, extraArgsString, cookiesPath) {
-  const url = normalizeUrl(rawUrl);
-  if (!isValidYoutubeUrl(url)) {
+  const platform = detectPlatform(rawUrl);
+  if (!platform) {
     throw fromRaw('invalid url', 'URL_INVALID');
   }
 
+  if (platform !== 'youtube') {
+    const info = await runVideoInfoAttempt(
+      ytdlpPath, String(rawUrl).trim(), extraArgsString,
+      [],
+      buildCookiesArgs(cookiesPath)
+    );
+    info.platform = platform;
+    return info;
+  }
+
+  const url = normalizeUrl(rawUrl);
   const hasCookies = !!String(cookiesPath || '').trim();
   try {
-    return await runVideoInfoAttempt(
+    const info = await runVideoInfoAttempt(
       ytdlpPath, url, extraArgsString,
       buildClientOverrideArgs(hasCookies),
       buildCookiesArgs(cookiesPath)
     );
+    info.platform = 'youtube';
+    return info;
   } catch (err) {
     if (!hasCookies || err.code !== 'YOUTUBE_BOT_CHECK') throw err;
     console.log('[YouTube Importer] Cookies configurados parecem expirados (bloqueio anti-bot) — tentando novamente sem cookies (qualidade pode ficar limitada).');
@@ -177,6 +233,7 @@ async function getVideoInfo(ytdlpPath, rawUrl, extraArgsString, cookiesPath) {
       []
     );
     fallback.cookiesExpired = true;
+    fallback.platform = 'youtube';
     return fallback;
   }
 }
@@ -214,8 +271,19 @@ const QUALITY_HEIGHTS = { best: null, '1080p': 1080, '720p': 720, '480p': 480 };
  * reports which quality will actually be used (yt-dlp's selector syntax
  * already falls back to the closest lower quality on its own; we just need
  * to detect *ahead of time* whether we must warn the user about it).
+ *
+ * `platform` steers a couple of platform-specific quirks:
+ *  - TikTok serves the same clip as two different formats: `download_addr`
+ *    (has TikTok's watermark burned in — what the app's own "save video"
+ *    button gives you) and `play_addr`/`play_addr_h264` (the clean stream
+ *    the web player itself uses). yt-dlp already ranks the clean one higher
+ *    internally, but excluding `download_addr` by format_id explicitly
+ *    guarantees no watermark regardless of future preference changes.
+ *  - Instagram/TikTok clips are effectively always already single-file
+ *    H.264 (no separate high-quality video-only stream to prefer), so the
+ *    YouTube-only avc1 codec preference doesn't apply to them.
  */
-function resolveFormatPlan(mediaType, quality, availableHeights) {
+function resolveFormatPlan(mediaType, quality, availableHeights, platform) {
   const heights = availableHeights && availableHeights.length ? availableHeights : [];
   const requestedHeight = QUALITY_HEIGHTS[quality] !== undefined ? QUALITY_HEIGHTS[quality] : null; // avoid `??` — needs Node 14+, not guaranteed on older CEP-bundled Node
 
@@ -236,14 +304,24 @@ function resolveFormatPlan(mediaType, quality, availableHeights) {
 
   if (mediaType === 'audio-only' || quality === 'audio-best') {
     selector = 'bestaudio/best';
+  } else if (platform === 'tiktok') {
+    const noWatermark = '[format_id!=download_addr]';
+    if (mediaType === 'video-only') {
+      selector = `bestvideo${noWatermark}${heightClause}/bestvideo${heightClause}/best${noWatermark}/best`;
+    } else {
+      selector = `best${noWatermark}${heightClause}/bestvideo${noWatermark}${heightClause}+bestaudio/best${heightClause}/best`;
+      mergeToMp4 = true;
+    }
   } else if (mediaType === 'video-only') {
     // Prefer H.264 (avc1) at the target height — Premiere opens it reliably
     // everywhere; VP9/AV1 support varies by OS/GPU/Premiere version and can
     // silently fail to preview even when the file imports. Falls back to
     // any codec at that height, then to whatever's best overall.
-    selector = `bestvideo${heightClause}[vcodec^=avc1]/bestvideo${heightClause}/best${heightClause}`;
+    const avc1Clause = platform === 'instagram' ? '' : '[vcodec^=avc1]';
+    selector = `bestvideo${heightClause}${avc1Clause}/bestvideo${heightClause}/best${heightClause}`;
   } else {
-    selector = `bestvideo${heightClause}[vcodec^=avc1]+bestaudio/bestvideo${heightClause}+bestaudio/best${heightClause}`;
+    const avc1Clause = platform === 'instagram' ? '' : '[vcodec^=avc1]';
+    selector = `bestvideo${heightClause}${avc1Clause}+bestaudio/bestvideo${heightClause}+bestaudio/best${heightClause}`;
     mergeToMp4 = true;
   }
 
@@ -268,9 +346,10 @@ function resolveFormatPlan(mediaType, quality, availableHeights) {
  * trim it locally afterward instead. Streams progress events; returns the
  * child process handle so the caller can cancel.
  */
-function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, formatSelector, mergeToMp4, outputTemplate, useSections = true, extraArgsString, cookiesPath }, onProgress) {
+function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, formatSelector, mergeToMp4, outputTemplate, useSections = true, extraArgsString, cookiesPath, platform }, onProgress) {
+  const effectivePlatform = platform || detectPlatform(url) || 'youtube';
   const args = [
-    normalizeUrl(url),
+    effectivePlatform === 'youtube' ? normalizeUrl(url) : String(url).trim(),
     '-f', formatSelector,
     '--no-playlist',
     '--newline',
@@ -279,7 +358,7 @@ function downloadSection({ ytdlpPath, ffmpegDir, url, startSeconds, endSeconds, 
     '--ffmpeg-location', ffmpegDir,
     '-o', outputTemplate,
     '--print', 'after_move:filepath',
-    ...buildClientOverrideArgs(!!String(cookiesPath || '').trim()),
+    ...(effectivePlatform === 'youtube' ? buildClientOverrideArgs(!!String(cookiesPath || '').trim()) : []),
     ...buildCookiesArgs(cookiesPath),
     ...parseExtraArgs(extraArgsString),
   ];
@@ -352,6 +431,8 @@ function parseProgressLine(line) {
 module.exports = {
   extractVideoId,
   isValidYoutubeUrl,
+  detectPlatform,
+  isSupportedUrl,
   normalizeUrl,
   secToClock,
   getVideoInfo,

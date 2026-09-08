@@ -36,7 +36,7 @@
       return Promise.reject(new Error('A extensão não conseguiu carregar seu backend Node.js: ' + detail));
     }
     return {
-      isValidYoutubeUrl: function () { return false; },
+      isSupportedUrl: function () { return false; },
       getVideoInfo: reject,
       checkCache: function () { return null; },
       startImportJob: function () { return { jobId: null, promise: reject(), cancel: function () {} }; },
@@ -86,7 +86,7 @@
 
   global.BackendBridge = {
     // --- video metadata -----------------------------------------------
-    isValidYoutubeUrl: ytdlp.isValidYoutubeUrl,
+    isSupportedUrl: ytdlp.isSupportedUrl,
 
     getVideoInfo: function (url) {
       var config = currentConfig();

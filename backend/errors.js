@@ -30,6 +30,8 @@ const RULES = [
   [/Could not copy .*cookie database/i, 'COOKIES_BROWSER_LOCKED'],
   [/Could not find .*cookies database/i, 'COOKIES_BROWSER_LOCKED'],
   [/Failed to decrypt with DPAPI/i, 'COOKIES_DPAPI_FAILED'],
+  [/Requested content is not available, rate-limit reached or login required/i, 'INSTAGRAM_LOGIN_OR_RATE_LIMIT'],
+  [/Instagram sent an empty media response/i, 'INSTAGRAM_EMPTY_RESPONSE'],
   [/members-only/i, 'VIDEO_MEMBERS_ONLY'],
   [/live event will begin/i, 'VIDEO_UPCOMING_LIVE'],
   [/is not a valid URL/i, 'URL_INVALID'],
@@ -56,12 +58,16 @@ const MESSAGES = {
   COOKIES_BROWSER_LOCKED:
     'Não foi possível ler os cookies do navegador porque ele está aberto (o arquivo de cookies fica travado enquanto o navegador roda). Feche o navegador completamente — confira no Gerenciador de Tarefas se não sobrou nenhum processo dele em segundo plano — e tente novamente.',
   COOKIES_DPAPI_FAILED:
-    '--cookies-from-browser não funciona neste computador (navegadores baseados em Chrome mudaram a criptografia dos cookies e o yt-dlp ainda não lê de forma confiável em todo ambiente — bug conhecido). Use um cookies.txt exportado em vez disso: limpe o campo "Extra yt-dlp Args", exporte um cookies.txt do navegador (logado no YouTube) e configure o caminho em ⚙ Configurações > Auth // Cookies.',
+    '--cookies-from-browser não funciona neste computador (navegadores baseados em Chrome mudaram a criptografia dos cookies e o yt-dlp ainda não lê de forma confiável em todo ambiente — bug conhecido). Use um cookies.txt exportado em vez disso: limpe o campo "Extra yt-dlp Args", exporte um cookies.txt do navegador (logado na plataforma) e configure o caminho em ⚙ Configurações > Auth // Cookies.',
+  INSTAGRAM_LOGIN_OR_RATE_LIMIT:
+    'O Instagram bloqueou o acesso a este conteúdo (post privado, limite de requisições, ou é necessário estar logado). Configure um cookies.txt exportado do navegador logado no Instagram em ⚙ Configurações > Auth // Cookies e tente novamente.',
+  INSTAGRAM_EMPTY_RESPONSE:
+    'O Instagram não retornou o vídeo (resposta vazia — costuma acontecer com o yt-dlp desatualizado ou cookies vencidos). Atualize o yt-dlp e configure um cookies.txt novo, exportado do navegador logado no Instagram.',
   YOUTUBE_BOT_CHECK:
     'O YouTube pediu confirmação de que você não é um robô. Isso quase sempre significa que o arquivo cookies.txt configurado expirou ou está desatualizado. Exporte um novo cookies.txt do seu navegador (logado no YouTube) e atualize o caminho em ⚙ Configurações > Auth // Cookies.',
   VIDEO_MEMBERS_ONLY: 'Este vídeo é exclusivo para membros do canal e não pode ser baixado.',
   VIDEO_UPCOMING_LIVE: 'Este vídeo é uma transmissão ao vivo que ainda não começou.',
-  URL_INVALID: 'URL inválida. Verifique se é um link válido do YouTube (youtube.com/watch?v=... ou youtu.be/...).',
+  URL_INVALID: 'URL inválida. Use um link do YouTube, TikTok ou Instagram (ex.: youtube.com/watch?v=..., tiktok.com/@usuario/video/..., instagram.com/reel/...).',
   FORMAT_UNAVAILABLE: 'O formato/qualidade selecionado não está disponível para este vídeo.',
   RATE_LIMITED: 'O YouTube limitou temporariamente as solicitações. Aguarde alguns minutos e tente novamente.',
   YOUTUBE_FORBIDDEN:
