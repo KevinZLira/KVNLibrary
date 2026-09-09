@@ -21,6 +21,7 @@
         return;
       }
       var timeout = setTimeout(function () {
+        console.error('[YouTube Importer] Prévia: tempo esgotado esperando onYouTubeIframeAPIReady (script carregou mas API não inicializou, ou a rede está bloqueando/atrasando).');
         reject(new Error('Tempo esgotado ao carregar a prévia do YouTube.'));
       }, 8000);
 
@@ -31,8 +32,9 @@
 
       var tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
-      tag.onerror = function () {
+      tag.onerror = function (e) {
         clearTimeout(timeout);
+        console.error('[YouTube Importer] Prévia: falha ao carregar https://www.youtube.com/iframe_api (sem acesso à internet a partir do painel, ou bloqueado por firewall/proxy).', e);
         reject(new Error('Não foi possível carregar a prévia do YouTube.'));
       };
       document.head.appendChild(tag);
@@ -60,7 +62,14 @@
           playerVars: { rel: 0, modestbranding: 1 },
           events: {
             onReady: function () { resolve(player); },
-            onError: function (e) { reject(new Error('Não foi possível carregar a prévia deste vídeo.')); },
+            onError: function (e) {
+              // YT error codes: 2=parâmetro inválido, 5=erro HTML5, 100=vídeo
+              // não encontrado/removido, 101/150=dono do vídeo desativou a
+              // incorporação (embed) — nesse caso a prévia nunca vai funcionar
+              // para esse vídeo especificamente, mesmo com tudo certo.
+              console.error('[YouTube Importer] Prévia: onError do YT.Player, código:', e && e.data);
+              reject(new Error('Não foi possível carregar a prévia deste vídeo.'));
+            },
           },
         });
       });

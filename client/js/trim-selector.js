@@ -49,9 +49,8 @@
 
   function setDuration(newDuration) {
     duration = newDuration || 0;
-    var defaultEnd = Math.min(30, duration || 30);
     el('start-input').value = TimeUtils.formatClock(0);
-    el('end-input').value = TimeUtils.formatClock(defaultEnd);
+    el('end-input').value = TimeUtils.formatClock(duration || 30);
     validate();
   }
 

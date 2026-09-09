@@ -45,7 +45,8 @@
     if (info.platform === 'youtube') {
       YoutubePreview.load(info.id).then(function () {
         el('preview-card').classList.remove('hidden');
-      }).catch(function () {
+      }).catch(function (err) {
+        console.error('[YouTube Importer] Prévia não carregou:', err);
         el('preview-card').classList.add('hidden');
       });
     } else {

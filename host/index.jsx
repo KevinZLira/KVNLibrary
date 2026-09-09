@@ -114,14 +114,20 @@ function YTI_importAndInsert(filePath, mode, binName, audioFlag) {
     }
 
     // insertClip performs an insert edit (ripples downstream clips) and
-    // brings the linked audio/video along automatically. Some Premiere
-    // builds want seconds as a float, others want a tick string — try the
-    // float first and fall back to ticks.
+    // brings the linked audio/video along automatically. Premiere's
+    // documented API wants the time as a ticks-formatted STRING, not a raw
+    // seconds float — passing a float doesn't throw (ExtendScript coerces it
+    // loosely), it just silently no-ops the insert, so the clip never
+    // actually lands on the timeline even though the call "succeeds" (the
+    // earlier importFiles() already put it in the project bin, so this
+    // looked like "it always just goes to the project"). Try the correct
+    // ticks-string format first, falling back to the raw float only in case
+    // some Premiere build actually wants that instead.
     try {
-      track.insertClip(item, seconds);
+      track.insertClip(item, "" + Math.round(seconds * YTI_TICKS_PER_SECOND));
     } catch (e1) {
       try {
-        track.insertClip(item, "" + Math.round(seconds * YTI_TICKS_PER_SECOND));
+        track.insertClip(item, seconds);
       } catch (e2) {
         return "ERR|Falha ao inserir na timeline: " + e2 + " (a faixa está travada?)";
       }
