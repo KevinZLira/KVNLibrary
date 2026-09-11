@@ -1,210 +1,92 @@
 /**
- * Valores extraídos DIRETO do Figma via MCP (get_design_context no nó
- * 7:534, arquivo Jr4BIhYO3hk4BaaayjmcIN) - não são estimativas. O frame
- * original é um canvas fixo de 1080x1080.
+ * Paleta e medidas extraídas DIRETO do CSS real da Mister Horse Premiere
+ * Composer (extensão CEP, client/dist/browser.css) - não são estimativas.
+ * A pedido explícito do usuário, o painel deixou de usar o mockup verde
+ * neon/glow do Figma e passa a imitar o visual real, sóbrio, do Mister
+ * Horse (tema "darkest" do Adobe Spectrum, o mesmo sistema de design que
+ * o CEP deles usa via custom properties injetadas pelo host).
  *
- * Escala responsiva: o painel real do Premiere é bem mais estreito que
- * 1080px (mínimo 260px, preferido 320-340px no manifest.json) e
- * redimensionável pelo usuário. A primeira tentativa usava
- * clamp(piso, Xvw, teto) nas custom properties - quebrou tudo no painel
- * real (ícones sumindo, fonte caindo pro tamanho herdado, botão
- * encolhendo), confirmando que esse webview do UXP não lida bem com
- * clamp()/vw dentro de custom properties (mesma categoria de bug já
- * vista com aspect-ratio, filter:brightness e border-radius extremo -
- * quando uma declaração CSS usa uma função não suportada, o var() que
- * a referencia fica inválido e a propriedade volta pro valor padrão/
- * herdado, em vez de simplesmente ignorar só aquela função).
+ * Valores confirmados por extração de regex no CSS real (nunca por
+ * aparência/estimativa):
+ *   --spectrum-gray-50/-75/-100/-200/-300/-500/-700 (tema darkest)
+ *   --spectrum-blue-400/-500/-600 (botão "emphasized")
+ *   .button{border-radius:4px;height:20px;padding:2px 7px}
+ *   .tree-view-row{min-height:24px} .tree-view-item__icon{24x24}
+ *   .tree-view-row__content{margin-left: depth*20px}
+ *   .grid-view-item__preview{margin:10px 10px 0}
+ *   .grid-view-item__label{height:34px;margin:0 10px}
+ *   --font-size:12px; --font-family:"Adobe Clean",sans-serif
  *
- * Substituído por algo bem mais simples e testado: cada medida crítica
- * é uma custom property com um valor fixo em px, redefinida em três
- * breakpoints via @media (min-width) - só media query + px puro, sem
- * clamp()/vw/min()/max() em lugar nenhum. Os valores de cada breakpoint
- * mantêm a MESMA proporção entre si que o Figma (canvas 1080x1080), só
- * não interpolam continuamente - saltam em 3 degraus em vez de
- * encolher pixel a pixel, troca aceitável por realmente funcionar.
+ * O Mister Horse não usa um painel responsivo por breakpoints (é um
+ * layout fixo, JS-driven) - por isso o sistema de 3 breakpoints do
+ * mockup anterior (necessário só por causa do clamp()/vw quebrado nesse
+ * webview do UXP) foi trocado por um único conjunto de valores fixos em
+ * px, mais simples e mais fiel ao original.
  *
- * Também mantidos de propósito, por causarem artefatos visuais nesse
- * webview do UXP (confirmado testando no painel real): `border-radius`
- * muito grande (999px) - clampado incorretamente e vaza o box-shadow em
- * formato de losango pelos cantos, por isso os raios de pílula usam
- * calc(altura/2) (calc() básico, sem clamp - sempre exatamente redondo,
- * em qualquer breakpoint) em vez de um valor arbitrariamente maior;
- * `aspect-ratio` - não dimensiona o elemento (thumbs somem), por isso a
- * proporção 304:187 do card usa padding-top percentual.
+ * Bugs deste webview do UXP continuam valendo e as soluções foram
+ * mantidas: `aspect-ratio` não dimensiona o elemento (thumbs somem) -
+ * o frame 304:187 do card ainda usa padding-top percentual;
+ * <video>/<img> não pintam nada sozinhos mesmo carregando com sucesso -
+ * o frame decodificado ainda é desenhado num <canvas> via drawImage();
+ * <button> nativo recebe estilo do SO que appearance:none não sobrescreve
+ * de forma confiável - continuam sendo <div role="button">.
  */
 
 :root {
-  --kvn-bg: #1b1b1b;
-  --kvn-bg-header: #000000;
-  --kvn-bg-surface: #161616;
-  --kvn-bg-elevated: #0d0d0d;
-  --kvn-bg-row: #1f1f1f;
-  --kvn-bg-row-hover: #2a2a2a;
-  --kvn-bg-row-file: #1c1c1c;
-  --kvn-bg-row-file-hover: #262626;
-  --kvn-bg-card: #2a2a2a;
-  --kvn-bg-card-inner: #232323;
-  --kvn-bg-card-hover: #323232;
-  --kvn-border: #2a2a2a;
-  --kvn-text: #ffffff;
-  --kvn-text-muted: #8a8a8a;
-  --kvn-accent: #7ff425;
-  --kvn-accent-hover: #97ff5c;
-  --kvn-accent-text: #000000;
-  --kvn-accent-glow: rgba(127, 244, 37, 0.8);
-  --kvn-scrollbar: #d9d9d9;
-  --kvn-error: #ff5d5d;
-  --kvn-success: #7ff425;
+  /* Fundos (escala de cinza do tema "darkest" do Spectrum) */
+  --kvn-bg: #0e0e0e; /* background-grid-list - área da grade */
+  --kvn-bg-header: #1d1d1d; /* background-panel */
+  --kvn-bg-surface: #1d1d1d; /* background-panel - árvore */
+  --kvn-bg-row: #1d1d1d;
+  --kvn-bg-row-hover: #303030; /* background-panel-selected */
+  --kvn-bg-row-file: #1d1d1d;
+  --kvn-bg-row-file-hover: #303030;
+  --kvn-bg-row-active: #303030;
+  --kvn-bg-card: #1d1d1d; /* background-grid-item */
+  --kvn-bg-card-inner: #0e0e0e;
+  --kvn-bg-card-hover: #303030; /* background-grid-item-hover */
+  --kvn-bg-card-selected: #4b4b4b; /* background-grid-item-selected */
+  --kvn-border: #000000; /* background-separator-dark */
 
-  /* Breakpoint 1 (padrão - painel dockado estreito, até 479px):
-     valores compactos, mesma proporção do Figma entre si. */
+  /* Texto */
+  --kvn-text: #d0d0d0; /* text-panel-primary (gray-700) */
+  --kvn-text-muted: #8d8d8d; /* text-panel-secondary (gray-500) */
+  --kvn-text-on-accent: #ffffff;
+
+  /* Acento (botão "emphasized" - único lugar com cor no Mister Horse,
+     não tem verde em lugar nenhum do produto real) */
+  --kvn-accent: #1379f3; /* spectrum-blue-600 */
+  --kvn-accent-hover: #0367e0; /* spectrum-blue-500 */
+  --kvn-accent-active: #0059c2; /* spectrum-blue-400 */
+
+  --kvn-scrollbar: #4b4b4b;
+  --kvn-error: #ff5d5d;
+  --kvn-success: #2fce6b;
+  --kvn-info: #1379f3;
+
+  /* Medidas fixas (sem breakpoints - o painel real do Mister Horse não
+     é responsivo por steps, é um layout fixo compacto) */
   --kvn-header-h: 38px;
-  --kvn-header-pad-l: 13px;
-  --kvn-header-pad-r: 11px;
-  --kvn-logo-h: 21px;
-  --kvn-header-gap: 16px;
+  --kvn-logo-h: 20px;
   --kvn-icon-size: 24px;
 
-  --kvn-tree-w: 130px;
-  --kvn-row-h: 34px;
-  --kvn-row-gap: 3px;
-  --kvn-row-font: 12px;
-  --kvn-row-pad-base: 12px;
-  --kvn-row-inline-gap: 8px;
-  --kvn-row-chevron-w: 8px;
-  --kvn-row-icon-w: 16px;
-  --kvn-row-icon-h: 14px;
-  --kvn-file-row-pad: 26px;
-  --kvn-scrollbar-w: 7px;
+  --kvn-tree-w: 150px;
+  --kvn-row-min-h: 24px;
+  --kvn-row-indent: 20px; /* tree-view-row__content: depth * 20px, valor real */
+  --kvn-row-icon-w: 24px;
+  --kvn-row-icon-h: 24px;
+  --kvn-scrollbar-w: 8px;
 
-  --kvn-card-w: 140px;
-  --kvn-card-gap-x: 8px;
-  --kvn-card-gap-y: 8px;
-  --kvn-card-pad-t: 8px;
-  --kvn-card-pad-r: 8px;
-  --kvn-card-pad-b: 6px;
-  --kvn-card-pad-l: 8px;
-  --kvn-caption-font: 10px;
-  --kvn-thumb-gap: 5px;
+  --kvn-card-w: 128px;
+  --kvn-card-gap-x: 10px;
+  --kvn-card-gap-y: 10px;
+  --kvn-thumb-margin: 10px; /* grid-view-item__preview: margin:10px 10px 0 */
+  --kvn-label-h: 34px; /* grid-view-item__label: height:34px */
 
-  --kvn-btn-h: 34px;
-  --kvn-btn-pad-x: 12px;
+  --kvn-btn-h: 20px; /* .button: height:20px */
+  --kvn-btn-pad-x: 7px; /* .button: padding:2px 7px */
+  --kvn-btn-radius: 4px; /* .button: border-radius:4px */
   --kvn-btn-font: 12px;
-}
-
-/* Breakpoint 2 (painel médio, 480-799px). */
-@media (min-width: 480px) {
-  :root {
-    --kvn-header-h: 56px;
-    --kvn-header-pad-l: 22px;
-    --kvn-header-pad-r: 19px;
-    --kvn-logo-h: 30px;
-    --kvn-header-gap: 20px;
-    --kvn-icon-size: 30px;
-
-    --kvn-tree-w: 200px;
-    --kvn-row-h: 44px;
-    --kvn-row-gap: 4px;
-    --kvn-row-font: 15px;
-    --kvn-row-pad-base: 20px;
-    --kvn-row-inline-gap: 14px;
-    --kvn-row-chevron-w: 6px;
-    --kvn-row-icon-w: 22px;
-    --kvn-row-icon-h: 19px;
-    --kvn-file-row-pad: 50px;
-    --kvn-scrollbar-w: 9px;
-
-    --kvn-card-w: 200px;
-    --kvn-card-gap-x: 10px;
-    --kvn-card-gap-y: 8px;
-    --kvn-card-pad-t: 9px;
-    --kvn-card-pad-r: 10px;
-    --kvn-card-pad-b: 6px;
-    --kvn-card-pad-l: 9px;
-    --kvn-caption-font: 10.5px;
-    --kvn-thumb-gap: 5px;
-
-    --kvn-btn-h: 40px;
-    --kvn-btn-pad-x: 14px;
-    --kvn-btn-font: 15px;
-  }
-}
-
-/* Breakpoint 3 (painel largo, 800-1079px). */
-@media (min-width: 800px) {
-  :root {
-    --kvn-header-h: 84px;
-    --kvn-header-pad-l: 38px;
-    --kvn-header-pad-r: 34px;
-    --kvn-logo-h: 43px;
-    --kvn-header-gap: 26px;
-    --kvn-icon-size: 34px;
-
-    --kvn-tree-w: 280px;
-    --kvn-row-h: 56px;
-    --kvn-row-gap: 4px;
-    --kvn-row-font: 21px;
-    --kvn-row-pad-base: 34px;
-    --kvn-row-inline-gap: 21px;
-    --kvn-row-chevron-w: 7px;
-    --kvn-row-icon-w: 33px;
-    --kvn-row-icon-h: 28px;
-    --kvn-file-row-pad: 92px;
-    --kvn-scrollbar-w: 11px;
-
-    --kvn-card-w: 280px;
-    --kvn-card-gap-x: 13px;
-    --kvn-card-gap-y: 10px;
-    --kvn-card-pad-t: 10px;
-    --kvn-card-pad-r: 11px;
-    --kvn-card-pad-b: 7px;
-    --kvn-card-pad-l: 10px;
-    --kvn-caption-font: 10.5px;
-    --kvn-thumb-gap: 5px;
-
-    --kvn-btn-h: 46px;
-    --kvn-btn-pad-x: 17px;
-    --kvn-btn-font: 22px;
-  }
-}
-
-/* Breakpoint 4 (painel flutuante bem largo, 1080px+): valores literais
-   do Figma, sem nenhum ajuste. */
-@media (min-width: 1080px) {
-  :root {
-    --kvn-header-h: 139px;
-    --kvn-header-pad-l: 63px;
-    --kvn-header-pad-r: 57px;
-    --kvn-logo-h: 70.6px;
-    --kvn-header-gap: 36px;
-    --kvn-icon-size: 54px;
-
-    --kvn-tree-w: 331px;
-    --kvn-row-h: 64px;
-    --kvn-row-gap: 5px;
-    --kvn-row-font: 25.806px;
-    --kvn-row-pad-base: 40px;
-    --kvn-row-inline-gap: 25px;
-    --kvn-row-chevron-w: 7.5px;
-    --kvn-row-icon-w: 39px;
-    --kvn-row-icon-h: 33px;
-    --kvn-file-row-pad: 109px;
-    --kvn-scrollbar-w: 13px;
-
-    --kvn-card-w: 329px;
-    --kvn-card-gap-x: 15px;
-    --kvn-card-gap-y: 12px;
-    --kvn-card-pad-t: 12px;
-    --kvn-card-pad-r: 13px;
-    --kvn-card-pad-b: 8px;
-    --kvn-card-pad-l: 12px;
-    --kvn-caption-font: 11.655px;
-    --kvn-thumb-gap: 6px;
-
-    --kvn-btn-h: 53px;
-    --kvn-btn-pad-x: 19px;
-    --kvn-btn-font: 25.806px;
-  }
 }
 
 * {
@@ -217,7 +99,7 @@ body {
   padding: 0;
   background: var(--kvn-bg);
   color: var(--kvn-text);
-  font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Adobe Clean", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 12px;
 }
 
@@ -234,10 +116,9 @@ body {
   align-items: center;
   justify-content: space-between;
   height: var(--kvn-header-h);
-  padding: 0 var(--kvn-header-pad-r) 0 var(--kvn-header-pad-l);
+  padding: 0 12px;
   background: var(--kvn-bg-header);
-  border-bottom: 2px solid var(--kvn-accent);
-  box-shadow: 0 2px 6px 0 var(--kvn-accent), 0 4px 22px 2px var(--kvn-accent-glow);
+  border-bottom: 1px solid var(--kvn-border);
   flex-shrink: 0;
 }
 
@@ -259,83 +140,44 @@ body {
 .kvn-header-actions {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
 }
 
-/* Ícone de refresh (node 17:890/17:895/17:897): círculo com o glifo
-   (RefreshIcon.svg, asset real do Figma - node 17:897, baixado via
-   Figma MCP download_assets, com o retângulo de fundo do recorte
-   removido) ocupando ~59.3% do diâmetro (32/54 no Figma), a mesma
-   proporção em qualquer tamanho de círculo. Verde neon com glow em três
-   camadas, mesmo tratamento do botão CTA ao lado (no Figma são duas
-   elipses - uma borrada atrás, uma sólida na frente - o box-shadow
-   reproduz o mesmo efeito sem precisar de uma segunda camada de
-   elemento).
+/* Botão de ícone (refresh): mesmo tratamento visual de um botão padrão
+   do Mister Horse (fundo neutro, cantos 4px, sem glow/pílula) - só que
+   quadrado, do tamanho de um ícone de árvore (24x24), pra caber o
+   glifo de RefreshIcon.svg centralizado.
    É um <div role="button">, não <button> - <button> nesse webview do
    UXP recebe estilo nativo do SO que nem appearance:none consegue
    sobrescrever de forma confiável (testado: três tentativas de CSS
    diferentes não resolveram até trocar o elemento). */
 .kvn-icon-button {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   width: var(--kvn-icon-size);
   height: var(--kvn-icon-size);
-  /* margin em vez de gap no pai (.kvn-header-actions) - suspeita forte
-     de que gap em flexbox não funciona nesse webview do UXP (mesma
-     categoria de recurso "mais novo" que já vimos falhar: clamp(),
-     aspect-ratio, filter:brightness); margin é suportado desde sempre. */
-  margin-right: var(--kvn-header-gap);
-  background-color: var(--kvn-accent);
-  background-image:
-    url("../../../RefreshIcon.svg"),
-    linear-gradient(180deg, var(--kvn-accent-hover), var(--kvn-accent));
-  background-repeat: no-repeat, no-repeat;
-  background-position: center, center;
-  background-size: calc(var(--kvn-icon-size) * 0.593) calc(var(--kvn-icon-size) * 0.593), cover;
-  color: var(--kvn-accent-text);
-  border-radius: calc(var(--kvn-icon-size) / 2);
+  margin-right: 10px;
+  background-color: var(--kvn-bg-card-inner);
+  background-image: url("../../../RefreshIcon.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 14px 14px;
+  border-radius: var(--kvn-btn-radius);
   cursor: pointer;
   line-height: 1;
   user-select: none;
-  box-shadow: 0 0 10px 2px rgba(127, 244, 37, 0.8);
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
-}
-
-/* Glow de verdade, copiado do Figma (node 17:895 - IconGlow.png, a
-   elipse borrada de propósito por trás do ícone sólido, node 17:890) -
-   em vez de tentar imitar o blur com box-shadow. No Figma essa camada é
-   131.4% do tamanho do ícone (54px vira 71px), centralizada. Um
-   background-image não dá pra estourar o próprio box do elemento
-   (fica sempre cortado nas bordas), por isso é um ::before absoluto e
-   maior, atrás do ícone (z-index -1). */
-.kvn-icon-button::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 131.4%;
-  height: 131.4%;
-  transform: translate(-50%, -50%);
-  background-image: url("../../../IconGlow.png");
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  pointer-events: none;
-  z-index: -1;
+  transition: background-color 0.15s ease;
 }
 
 .kvn-icon-button:hover {
-  background-color: var(--kvn-accent-hover);
-  box-shadow: 0 0 14px 4px rgba(151, 255, 92, 0.9);
-  transform: translateY(-1px);
+  background-color: var(--kvn-bg-row-hover);
 }
 
 .kvn-project-status {
   margin: 0;
   padding: 6px 10px;
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--kvn-text-muted);
   border-bottom: 1px solid var(--kvn-border);
   flex-shrink: 0;
@@ -354,12 +196,12 @@ body {
 }
 
 .kvn-status-bar.kvn-status-info {
-  background: rgba(127, 244, 37, 0.1);
-  color: var(--kvn-accent);
+  background: rgba(19, 121, 243, 0.12);
+  color: var(--kvn-info);
 }
 
 .kvn-status-bar.kvn-status-success {
-  background: rgba(127, 244, 37, 0.14);
+  background: rgba(47, 206, 107, 0.14);
   color: var(--kvn-success);
 }
 
@@ -382,24 +224,15 @@ body {
   line-height: 1.5;
 }
 
-/* Biblioteca: árvore fixa na esquerda (node 7:539 etc.) + grade
-   responsiva na direita, sempre visíveis lado a lado. Divisor entre as
-   duas colunas com glow verde (node 7:551/552 - duas linhas, uma
-   borrada atrás e uma sólida de 2px na frente).
-   A árvore usa flex-shrink:0 mas com --kvn-tree-w já variando por
-   breakpoint (não mais um único px fixo) - antes disso, com 331px fixos
-   e sem encolher nunca, ela sozinha estourava a largura inteira do
-   painel real
-   (260-340px), empurrando a grade inteira pra fora da área visível: os
-   cards tecnicamente existiam no DOM mas nunca "intersectavam" a área
-   visível, e o IntersectionObserver do preview (assetGrid.js) nunca
-   disparava - por isso vídeo/imagem/áudio pareciam quebrados. */
+/* Biblioteca: árvore fixa na esquerda + grade responsiva na direita,
+   sempre visíveis lado a lado - mesma arquitetura split-pane do Mister
+   Horse (.split-pane__tree-pane / .split-pane__grid-pane). */
 .kvn-library-view {
   flex: 1;
   min-height: 0;
   display: flex;
   overflow: hidden;
-  background: var(--kvn-bg-surface);
+  background: var(--kvn-bg);
 }
 
 .kvn-library-tree {
@@ -407,14 +240,9 @@ body {
   min-width: 0;
   overflow-y: auto;
   background: var(--kvn-bg-surface);
-  border-right: 2px solid var(--kvn-accent);
-  box-shadow: 2px 0 6px 0 var(--kvn-accent), 4px 0 22px 2px var(--kvn-accent-glow);
+  border-right: 1px solid var(--kvn-border);
 }
 
-/* Barra de rolagem: cantos 9px, #d9d9d9 (node 7:555/556) - a altura real
-   varia com o conteúdo (é uma barra de rolagem de verdade, não uma
-   imagem estática), então só a largura e a cor são fixas (e a largura
-   também encolhe com --kvn-scrollbar-w). */
 .kvn-library-tree::-webkit-scrollbar,
 .kvn-library-main::-webkit-scrollbar {
   width: var(--kvn-scrollbar-w);
@@ -428,30 +256,30 @@ body {
 .kvn-library-tree::-webkit-scrollbar-thumb,
 .kvn-library-main::-webkit-scrollbar-thumb {
   background: var(--kvn-scrollbar);
-  border-radius: 9px;
+  border-radius: 4px;
 }
 
 .kvn-library-main {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: var(--kvn-card-pad-t);
+  padding: 10px;
 }
 
-/* Linha de pasta (node 7:539 etc.): bloco sólido sem cantos
-   arredondados. Chevron + ícone de pasta + texto, com o mesmo vão entre
-   cada elemento do Figma (proporcionalmente). */
+/* Linha de pasta (tree-view-row real: min-height 24px, fundo sólido,
+   indentação de 20px por nível de profundidade - valores literais do
+   Mister Horse, não pílula/glow). */
 .kvn-tree-folder-row {
   display: flex;
   align-items: center;
-  gap: var(--kvn-row-inline-gap);
-  height: var(--kvn-row-h);
-  margin-bottom: var(--kvn-row-gap);
-  padding-left: calc(var(--kvn-row-pad-base) + var(--kvn-depth, 0) * (var(--kvn-row-pad-base) / 2));
+  gap: 5px;
+  min-height: var(--kvn-row-min-h);
+  padding: 0 5px;
+  padding-left: calc(5px + var(--kvn-depth, 0) * var(--kvn-row-indent));
   cursor: pointer;
   background: var(--kvn-bg-row);
   color: var(--kvn-text);
-  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--kvn-border);
 }
 
 .kvn-tree-folder-row:hover {
@@ -459,56 +287,77 @@ body {
 }
 
 .kvn-tree-folder-row.kvn-tree-active {
-  border-left-color: var(--kvn-accent);
+  background: var(--kvn-bg-row-active);
 }
 
 .kvn-tree-chevron {
-  width: var(--kvn-row-chevron-w);
+  width: 10px;
   flex-shrink: 0;
-  font-size: max(11px, calc(var(--kvn-row-font) * 0.62));
+  font-size: 10px;
   text-align: center;
-  color: var(--kvn-text);
+  color: var(--kvn-text-muted);
 }
 
-/* Ícone de pasta (Icone.png, enviado pelo usuário) na proporção do
-   Vector do Figma (node 7:558). */
+/* Ícone de pasta desenhado só com CSS (retângulo + aba), sem depender
+   de imagem - o Mister Horse usa um ícone monocromático simples aqui
+   (tree-view-item__icon, 24x24) e não temos o asset real deles pra
+   copiar, então isso evita tanto usar o ícone verde antigo (Icone.png,
+   que não combina com o tema sóbrio) quanto arriscar filter/imagem
+   quebrando nesse webview. */
 .kvn-tree-folder-icon {
+  position: relative;
   width: var(--kvn-row-icon-w);
   height: var(--kvn-row-icon-h);
   flex-shrink: 0;
-  background-image: url("../../../Icone.png");
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
+}
+
+.kvn-tree-folder-icon::before,
+.kvn-tree-folder-icon::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  background: var(--kvn-text-muted);
+  border-radius: 1px;
+}
+
+.kvn-tree-folder-icon::before {
+  top: 9px;
+  width: 18px;
+  height: 11px;
+}
+
+.kvn-tree-folder-icon::after {
+  top: 7px;
+  width: 8px;
+  height: 3px;
 }
 
 .kvn-tree-folder-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: "Inter", sans-serif;
   font-weight: 400;
-  font-size: var(--kvn-row-font);
+  font-size: 12px;
 }
 
-/* Linha de arquivo (node 7:544 etc.): mesma altura/vão da linha de
-   pasta, sem chevron nem ícone. */
+/* Linha de arquivo: mesma altura/fundo da linha de pasta, indentada
+   além do prefixo chevron+ícone da pasta pra alinhar visualmente com o
+   texto da pasta (10 + 5 + 24 + 5 ~= 44px de prefixo). */
 .kvn-tree-file-row {
   display: flex;
   align-items: center;
-  height: var(--kvn-row-h);
-  margin-bottom: var(--kvn-row-gap);
-  padding-left: calc(var(--kvn-file-row-pad) + var(--kvn-depth, 0) * (var(--kvn-row-pad-base) / 2));
+  min-height: var(--kvn-row-min-h);
+  padding-left: calc(49px + var(--kvn-depth, 0) * var(--kvn-row-indent));
+  padding-right: 5px;
   cursor: pointer;
   background: var(--kvn-bg-row-file);
   color: var(--kvn-text);
-  font-family: "Inter", sans-serif;
   font-weight: 400;
-  font-size: var(--kvn-row-font);
+  font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--kvn-border);
 }
 
 .kvn-tree-file-row:hover {
@@ -516,12 +365,12 @@ body {
 }
 
 .kvn-tree-file-row.kvn-tree-active {
-  border-left-color: var(--kvn-accent);
+  background: var(--kvn-bg-row-active);
   color: var(--kvn-accent);
 }
 
-/* Grade: mesmo gap horizontal/vertical do Figma (node 7:584→7:591 e
-   7:586→7:584), fluido junto com o resto. */
+/* Grade: cards fluidos via flex-wrap (CSS grid se mostrou quebrado
+   nesse webview do UXP), gap 10px como o Mister Horse. */
 .kvn-assets-grid {
   display: flex;
   flex-wrap: wrap;
@@ -529,10 +378,9 @@ body {
   row-gap: var(--kvn-card-gap-y);
 }
 
-/* Card (node 7:584 etc.): largura fluida (--kvn-card-w) - o número de
-   colunas se adapta sozinho à largura disponível via flex-wrap, sem
-   precisar de CSS grid (que se mostrou quebrado nesse webview do UXP).
-   Cantos retos (nenhum "Rectangle" de card no Figma tem border-radius). */
+/* Card (grid-view-item real): fundo sólido, cantos retos, sem
+   padding próprio - o espaçamento interno vem da margem do thumb
+   (10px 10px 0, igual ao Mister Horse) e do label (0 10px). */
 .kvn-asset-card {
   display: flex;
   flex-direction: column;
@@ -542,7 +390,6 @@ body {
   box-sizing: border-box;
   background: var(--kvn-bg-card);
   border-radius: 0;
-  padding: var(--kvn-card-pad-t) var(--kvn-card-pad-r) var(--kvn-card-pad-b) var(--kvn-card-pad-l);
   cursor: pointer;
   text-align: left;
 }
@@ -552,23 +399,20 @@ body {
 }
 
 .kvn-asset-card.kvn-asset-selected {
-  box-shadow: 0 0 0 2px var(--kvn-accent), 0 0 24px 4px var(--kvn-accent-glow);
+  background: var(--kvn-bg-card-selected);
 }
 
-/* Frame com a proporção da "tela" travada em 304:187 (node 7:587), via
-   padding-top percentual - técnica clássica que trava a proporção
-   respondendo à largura real do card, sem depender da propriedade
-   aspect-ratio (que não dimensiona o elemento nesse webview do UXP - o
-   thumb sumia por completo). */
+/* Frame com a proporção da "tela" travada em 304:187, via padding-top
+   percentual - aspect-ratio não dimensiona o elemento nesse webview do
+   UXP (o thumb sumia por completo). Margem 10px 10px 0, igual ao
+   grid-view-item__preview real. */
 .kvn-asset-thumb-frame {
   position: relative;
-  width: 100%;
+  width: calc(100% - 20px);
+  margin: var(--kvn-thumb-margin) var(--kvn-thumb-margin) 0;
   padding-top: 61.51%;
-  margin-bottom: var(--kvn-thumb-gap);
 }
 
-/* "Tela" interna do card (moldura #2A2A2A + tela #232323) - preenche o
-   frame acima, cantos retos. */
 .kvn-asset-thumb {
   position: absolute;
   top: 0;
@@ -584,24 +428,25 @@ body {
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.3px;
-  color: #06120a;
+  color: var(--kvn-text-muted);
   background: var(--kvn-bg-card-inner);
 }
 
-.kvn-asset-thumb-video { background: #6bffab; }
-.kvn-asset-thumb-audio { background: var(--kvn-bg-card-inner); color: var(--kvn-accent); }
-.kvn-asset-thumb-image { background: #a8ffcb; }
-.kvn-asset-thumb-mogrt { background: #8fffcf; }
-.kvn-asset-thumb-preset { background: #c8ffdf; }
-.kvn-asset-thumb-file { background: var(--kvn-bg-card-inner); color: var(--kvn-text-muted); }
+.kvn-asset-thumb-video,
+.kvn-asset-thumb-audio,
+.kvn-asset-thumb-image,
+.kvn-asset-thumb-mogrt,
+.kvn-asset-thumb-preset,
+.kvn-asset-thumb-file {
+  background: var(--kvn-bg-card-inner);
+  color: var(--kvn-text-muted);
+}
 
 /* Vídeo/imagem: o <video>/<img> real fica escondido (1x1px, opacity:0 -
    ver hideMediaSource() em assetGrid.js) e só serve de fonte pra
    desenhar o frame decodificado num <canvas> via drawImage() - nesse
    webview do UXP o <video>/<img> não pinta nada sozinho na tela mesmo
-   carregando com sucesso (confirmado: videoWidth/videoHeight corretos,
-   tela preta mesmo assim), mas canvas com desenho direto funciona (a
-   forma de onda de áudio usa a mesma técnica). */
+   carregando com sucesso. */
 .kvn-asset-thumb-canvas-wrap {
   overflow: hidden;
 }
@@ -643,7 +488,7 @@ body {
   height: 18px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.55);
-  color: var(--kvn-accent);
+  color: var(--kvn-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -651,14 +496,19 @@ body {
   pointer-events: none;
 }
 
-/* Legenda do card (node 7:595): Inter Regular, branco. */
+/* Legenda do card (grid-view-item__label real: height 34px, margin 0
+   10px). */
 .kvn-asset-name {
-  font-family: "Inter", sans-serif;
+  height: var(--kvn-label-h);
+  margin: 0 10px;
+  display: flex;
+  align-items: center;
   font-weight: 400;
-  font-size: var(--kvn-caption-font);
+  font-size: 12px;
   color: var(--kvn-text);
-  word-break: break-word;
-  line-height: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .kvn-action-bar {
@@ -666,8 +516,7 @@ body {
   flex-direction: column;
   gap: 6px;
   padding: 8px 10px;
-  border-top: 2px solid var(--kvn-accent);
-  box-shadow: 0 -2px 6px 0 var(--kvn-accent), 0 -4px 22px 2px var(--kvn-accent-glow);
+  border-top: 1px solid var(--kvn-border);
   background: var(--kvn-bg-header);
   flex-shrink: 0;
 }
@@ -689,99 +538,50 @@ body {
   flex: 1;
 }
 
-/* Pílula verde neon com texto preto em negrito (node 7:882/883/884):
-   raio sempre calc(altura/2) - matematicamente a MESMA forma de pílula
-   100% redonda em qualquer breakpoint; um raio arbitrariamente maior,
-   tipo 999px, não fica mais redondo, só quebra nesse webview: vaza o
-   box-shadow em formato de losango pelos cantos.
+/* Botão real do Mister Horse (.button): cantos 4px, altura 20px,
+   padding 2px 7px - compacto, nada de pílula/glow. O "emphasized"
+   (Selecionar/Trocar Biblioteca, Importar, Inserir) usa o azul
+   spectrum-blue-600, o único acento de cor do produto real.
    É um <div role="button">, não <button> - mesmo motivo do ícone de
    refresh acima. */
 .kvn-primary-button,
 .kvn-secondary-button {
-  position: relative;
   background-color: var(--kvn-accent);
-  background-image: linear-gradient(180deg, var(--kvn-accent-hover), var(--kvn-accent));
-  color: var(--kvn-accent-text);
+  color: var(--kvn-text-on-accent);
   border: none;
   height: var(--kvn-btn-h);
-  border-radius: calc(var(--kvn-btn-h) / 2);
+  border-radius: var(--kvn-btn-radius);
   padding: 0 var(--kvn-btn-pad-x);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: "Inter", sans-serif;
-  font-weight: 700;
+  font-weight: 400;
   font-size: var(--kvn-btn-font);
   cursor: pointer;
   flex-shrink: 0;
   user-select: none;
   white-space: nowrap;
-  box-shadow:
-    0 0 16px 4px rgba(127, 244, 37, 1),
-    0 0 38px 10px rgba(127, 244, 37, 0.85),
-    0 0 70px 20px rgba(127, 244, 37, 0.55);
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
-}
-
-/* Glow de verdade do botão "Selecionar/Trocar Biblioteca", copiado do
-   Figma (node 7:882 - ButtonGlow.png, a camada borrada por trás da
-   pílula sólida, node 7:883) - em vez de tentar imitar o blur com
-   box-shadow. No Figma essa camada é 110.64% da largura e 156.6% da
-   altura do botão (282x53 vira 312x83), centralizada. Só no botão do
-   header (não em Importar/Inserir, que têm largura variável - esticar
-   essa imagem pra larguras muito diferentes da original distorceria o
-   desenho do blur). Um background-image não dá pra estourar o próprio
-   box do elemento (fica sempre cortado nas bordas), por isso é um
-   ::before absoluto e maior, atrás da pílula (z-index -1). */
-#choose-folder-header-button::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 110.64%;
-  height: 156.6%;
-  transform: translate(-50%, -50%);
-  background-image: url("../../../ButtonGlow.png");
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-  pointer-events: none;
-  z-index: -1;
-}
-
-#choose-folder-header-button {
-  box-shadow: 0 0 10px 2px rgba(127, 244, 37, 0.8);
-}
-
-#choose-folder-header-button:hover {
-  box-shadow: 0 0 14px 4px rgba(151, 255, 92, 0.9);
+  transition: background-color 0.15s ease;
 }
 
 .kvn-primary-button:hover,
 .kvn-secondary-button:hover {
-  background: var(--kvn-accent-hover);
-  box-shadow:
-    0 0 18px 5px rgba(151, 255, 92, 1),
-    0 0 46px 12px rgba(151, 255, 92, 0.9),
-    0 0 84px 24px rgba(127, 244, 37, 0.6);
-  transform: translateY(-1px);
+  background-color: var(--kvn-accent-hover);
 }
 
 .kvn-primary-button:active,
 .kvn-secondary-button:active {
-  transform: translateY(0);
+  background-color: var(--kvn-accent-active);
 }
 
 /* Substitui :disabled (pseudo-classe de <button>, não existe em <div>) -
    pointer-events:none bloqueia o clique de verdade, igual a um <button>
    desabilitado de verdade bloquearia. */
 .kvn-primary-button.kvn-btn-disabled {
-  background: var(--kvn-border);
-  background-image: none;
+  background-color: var(--kvn-bg-card-hover);
   color: var(--kvn-text-muted);
   cursor: not-allowed;
   pointer-events: none;
-  box-shadow: none;
-  transform: none;
 }
 
 .kvn-onboarding {
