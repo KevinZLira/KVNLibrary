@@ -56,6 +56,16 @@ function createBadgeThumb(asset) {
 // (ex.: a forma de onda de áudio parar de aparecer logo depois de
 // testar uma pasta cheia de vídeo 4K, sem nenhum código de áudio ter
 // mudado).
+//
+// VIDEO_LOAD_TIMEOUT_MS existe porque "loadeddata"/"error" às vezes NÃO
+// disparam nenhum dos dois nesse webview do UXP (o <video> aceita
+// play()/src mas às vezes nunca decodifica de fato - já confirmado em
+// outro lugar do app, ver comentário em previewManager.js). Sem um
+// timeout, o primeiro vídeo que travar assim prende a fila pra sempre
+// (videoLoadInFlight nunca volta a false) e NENHUM vídeo da pasta
+// inteira nunca mais ganha thumbnail - o sintoma bate com "nem um
+// vídeo mostra thumbnail", não só o primeiro.
+const VIDEO_LOAD_TIMEOUT_MS = 6000;
 const videoLoadQueue = [];
 let videoLoadInFlight = false;
 
@@ -65,10 +75,21 @@ function processVideoQueue() {
   }
   videoLoadInFlight = true;
   const { video, url } = videoLoadQueue.shift();
+  let settled = false;
   const finish = () => {
+    if (settled) {
+      return;
+    }
+    settled = true;
+    clearTimeout(timeoutId);
     videoLoadInFlight = false;
     processVideoQueue();
   };
+  const timeoutId = setTimeout(() => {
+    console.error(`[KVN] video timeout (${VIDEO_LOAD_TIMEOUT_MS}ms sem loadeddata/error) - src=${url}`);
+    video.dispatchEvent(new Event("error"));
+    finish();
+  }, VIDEO_LOAD_TIMEOUT_MS);
   video.addEventListener("loadeddata", finish, { once: true });
   video.addEventListener("error", finish, { once: true });
   video.preload = "auto";
