@@ -497,17 +497,12 @@ body {
   color: var(--kvn-text-muted);
 }
 
-/* Imagem: background-image via CSS num <div>, não <img>/<canvas> - o
-   <canvas> 2d desse webview não implementa drawImage() (confirmado por
-   log real: "ctx.drawImage is not a function") e uma <img> comum
-   também não pinta nada sozinha na tela (confirmado com captura de
-   tela do painel real) - a mesma URL como background-image, porém,
-   usa o pipeline de pintura de CSS em vez do de elemento substituído
-   do DOM, igual à técnica já usada no ícone de refresh. */
-.kvn-asset-thumb-image-bg {
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+/* Imagem: <img> de verdade, dentro do DOM (ver createImageThumb() no
+   assetGrid.js pro histórico de tentativas - canvas.drawImage() não
+   existe nesse webview, e um Image() fora do DOM nunca disparava nem
+   load nem error). object-fit:cover preenche o frame sem distorcer. */
+.kvn-asset-thumb-image-el {
+  object-fit: cover;
 }
 
 .kvn-audio-thumb {

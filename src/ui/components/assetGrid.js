@@ -63,35 +63,47 @@ function createBadgeThumb(asset) {
  * antes) - cai direto no badge (kind + nome), sem tentar carregar o
  * arquivo pra isso.
  *
- * Imagem: uma <img src="entry.url"> comum TAMBÉM não pintou nada no
- * painel real (mesmo bug do vídeo, confirmado por captura de tela -
- * só o badge "IMG" aparecia). Testando agora um caminho diferente:
- * background-image via CSS num <div> em vez da tag <img> - é a mesma
- * técnica que já funciona pro ícone de refresh (RefreshIcon.svg), só
- * que pintando pelo motor de CSS em vez do pipeline de elemento
- * substituído do DOM. Um Image() invisível (nunca entra no DOM) só
- * serve pra detectar sucesso/erro do carregamento antes de aplicar a
- * URL como background-image do <div> visível.
+ * Imagem: entry.url é um esquema interno do UXP (formato confirmado no
+ * console: "blob:/blob-1/Pasta/arquivo.png", não um blob: padrão da
+ * web nem um file://) - o comportamento muda conforme o jeito de usar
+ * essa URL: um Image() OFF-DOM (testado antes, background-image no
+ * <div>) nunca disparou nem "load" nem "error" - ficou preso pra
+ * sempre, sem sinal nenhum. Testando agora uma <img> de verdade, DENTRO
+ * do DOM (igual a como Logo.png/RefreshIcon.svg funcionam), com um
+ * timeout de 5s pra saber se trava do mesmo jeito ou se dá algum sinal
+ * (load ou error) dessa vez.
  */
 function createImageThumb(asset, observer) {
-  const div = document.createElement("div");
-  div.className = "kvn-asset-thumb kvn-asset-thumb-image-bg";
+  const img = document.createElement("img");
+  img.className = "kvn-asset-thumb kvn-asset-thumb-image-el";
+  img.alt = asset.name;
 
-  const loader = new Image();
-  loader.addEventListener("load", () => {
-    console.log(`[KVN] img carregada (bg) - "${asset.name}" natural=${loader.naturalWidth}x${loader.naturalHeight}`);
-    div.style.backgroundImage = `url("${asset.url.replace(/"/g, '\\"')}")`;
+  let settled = false;
+  const timeoutId = setTimeout(() => {
+    if (!settled) {
+      console.error(`[KVN] img TIMEOUT (5s sem load/error) - "${asset.name}" url=${asset.url}`);
+    }
+  }, 5000);
+
+  img.addEventListener("load", () => {
+    settled = true;
+    clearTimeout(timeoutId);
+    console.log(
+      `[KVN] img carregada - "${asset.name}" natural=${img.naturalWidth}x${img.naturalHeight} complete=${img.complete}`
+    );
   });
-  loader.addEventListener("error", (event) => {
+  img.addEventListener("error", (event) => {
+    settled = true;
+    clearTimeout(timeoutId);
     console.error(`[KVN] img erro - "${asset.name}" url=${asset.url}`, event);
-    div.replaceWith(createBadgeThumb(asset));
+    img.replaceWith(createBadgeThumb(asset));
   });
-  div.kvnLoad = () => {
-    console.log(`[KVN] kvnLoad (img bg) - "${asset.name}" url=${asset.url}`);
-    loader.src = asset.url;
+  img.kvnLoad = () => {
+    console.log(`[KVN] kvnLoad (img) - "${asset.name}" url=${asset.url}`);
+    img.src = asset.url;
   };
-  observer.observe(div);
-  return div;
+  observer.observe(img);
+  return img;
 }
 
 function createAudioThumb(asset, observer) {
