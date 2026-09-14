@@ -53,40 +53,45 @@ function createBadgeThumb(asset) {
  * problema de decodificação - o vídeo testado decodificou certinho
  * ("loadeddata" disparou com videoSize=3840x2160 correto) - o erro
  * acontecia bem depois, na hora de tentar desenhar o frame no canvas.
- * Por isso a técnica antiga (vídeo/imagem escondidos, frame desenhado
- * via drawImage() num canvas visível) foi abandonada por completo pra
- * essas duas mídias: nunca teve como funcionar aqui. A forma de onda de
- * áudio continua funcionando porque desenha com fillRect()/linhas, que
- * não depende de drawImage().
+ * A técnica antiga (vídeo/imagem escondidos, frame desenhado via
+ * drawImage() num canvas visível) nunca teve como funcionar aqui. A
+ * forma de onda de áudio continua funcionando porque desenha com
+ * fillRect()/linhas, que não depende de drawImage().
  *
  * Vídeo: sem alternativa conhecida pra gerar thumbnail real nesse
  * ambiente (o <video> também não pinta nada sozinho na tela, testado
  * antes) - cai direto no badge (kind + nome), sem tentar carregar o
  * arquivo pra isso.
  *
- * Imagem: testando uma hipótese ainda não verificada separadamente do
- * vídeo - exibir a <img> normalmente, sem escondê-la e sem canvas.
- * Different pipeline de decodificação de <video>, pode se comportar
- * diferente. Se não pintar na tela também, cai no mesmo badge.
+ * Imagem: uma <img src="entry.url"> comum TAMBÉM não pintou nada no
+ * painel real (mesmo bug do vídeo, confirmado por captura de tela -
+ * só o badge "IMG" aparecia). Testando agora um caminho diferente:
+ * background-image via CSS num <div> em vez da tag <img> - é a mesma
+ * técnica que já funciona pro ícone de refresh (RefreshIcon.svg), só
+ * que pintando pelo motor de CSS em vez do pipeline de elemento
+ * substituído do DOM. Um Image() invisível (nunca entra no DOM) só
+ * serve pra detectar sucesso/erro do carregamento antes de aplicar a
+ * URL como background-image do <div> visível.
  */
 function createImageThumb(asset, observer) {
-  const img = document.createElement("img");
-  img.className = "kvn-asset-thumb kvn-asset-thumb-image-el";
-  img.alt = asset.name;
+  const div = document.createElement("div");
+  div.className = "kvn-asset-thumb kvn-asset-thumb-image-bg";
 
-  img.addEventListener("load", () => {
-    console.log(`[KVN] img carregada - "${asset.name}" natural=${img.naturalWidth}x${img.naturalHeight}`);
+  const loader = new Image();
+  loader.addEventListener("load", () => {
+    console.log(`[KVN] img carregada (bg) - "${asset.name}" natural=${loader.naturalWidth}x${loader.naturalHeight}`);
+    div.style.backgroundImage = `url("${asset.url.replace(/"/g, '\\"')}")`;
   });
-  img.addEventListener("error", (event) => {
+  loader.addEventListener("error", (event) => {
     console.error(`[KVN] img erro - "${asset.name}" url=${asset.url}`, event);
-    img.replaceWith(createBadgeThumb(asset));
+    div.replaceWith(createBadgeThumb(asset));
   });
-  img.kvnLoad = () => {
-    console.log(`[KVN] kvnLoad (img) - "${asset.name}" url=${asset.url}`);
-    img.src = asset.url;
+  div.kvnLoad = () => {
+    console.log(`[KVN] kvnLoad (img bg) - "${asset.name}" url=${asset.url}`);
+    loader.src = asset.url;
   };
-  observer.observe(img);
-  return img;
+  observer.observe(div);
+  return div;
 }
 
 function createAudioThumb(asset, observer) {
