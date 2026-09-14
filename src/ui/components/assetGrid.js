@@ -3,15 +3,13 @@
  * recebe dados prontos e callbacks de seleção/duplo clique/pré-escuta - a
  * chamada real de API do Premiere fica em src/premiere/previewManager.js.
  *
- * Preview real: usa Entry.url (concedido via seletor de pastas) num
- * <img>/<video> escondido (hideMediaSource) só como fonte de dados - o
- * frame decodificado é desenhado num <canvas> visível via drawImage()
- * (drawMediaFrameToCanvas). Nesse webview do UXP, <img>/<video> não
- * pintam nada sozinhos mesmo carregando com sucesso, mas canvas
- * desenhado direto funciona. Áudio ganha um padrão visual decorativo
- * (ver waveform.js - não é uma forma de onda real, o UXP não expõe Web
- * Audio API nem <audio>) e a pré-escuta é disparada no clique (via
- * onPreviewAsset).
+ * Thumbnail de imagem: usa Entry.url (concedido via seletor de pastas)
+ * numa <img> normal, exibida direto na tela. Vídeo não tem thumbnail
+ * real nesse ambiente - cai num badge (ver createImageThumb pra
+ * detalhes de por que a técnica antiga, via <canvas>.drawImage(), foi
+ * abandonada). Áudio ganha um padrão visual decorativo (ver waveform.js
+ * - não é uma forma de onda real, o UXP não expõe Web Audio API nem
+ * <audio>) e a pré-escuta é disparada no clique (via onPreviewAsset).
  *
  * Carregamento sob demanda: numa pasta com muitos arquivos, criar todos os
  * cards já disparando o carregamento de cada <img>/<video> ao mesmo tempo
@@ -48,161 +46,47 @@ function createBadgeThumb(asset) {
   return thumb;
 }
 
-// Fila global de carregamento de vídeo - só um vídeo decodifica por vez,
-// mesmo que vários cards fiquem visíveis ao mesmo tempo (ex.: rolar a
-// grade rápido faz o observer disparar 6+ kvnLoad quase juntos). Cada
-// vídeo com preload="auto" pode ser um clipe 4K pesado - decodificar
-// vários ao mesmo tempo é o suspeito nº1 do painel ficando instável
-// (ex.: a forma de onda de áudio parar de aparecer logo depois de
-// testar uma pasta cheia de vídeo 4K, sem nenhum código de áudio ter
-// mudado).
-//
-// VIDEO_LOAD_TIMEOUT_MS existe porque "loadeddata"/"error" às vezes NÃO
-// disparam nenhum dos dois nesse webview do UXP (o <video> aceita
-// play()/src mas às vezes nunca decodifica de fato - já confirmado em
-// outro lugar do app, ver comentário em previewManager.js). Sem um
-// timeout, o primeiro vídeo que travar assim prende a fila pra sempre
-// (videoLoadInFlight nunca volta a false) e NENHUM vídeo da pasta
-// inteira nunca mais ganha thumbnail - o sintoma bate com "nem um
-// vídeo mostra thumbnail", não só o primeiro.
-const VIDEO_LOAD_TIMEOUT_MS = 6000;
-const videoLoadQueue = [];
-let videoLoadInFlight = false;
-
-function processVideoQueue() {
-  if (videoLoadInFlight || videoLoadQueue.length === 0) {
-    return;
-  }
-  videoLoadInFlight = true;
-  const { video, url } = videoLoadQueue.shift();
-  let settled = false;
-  const finish = () => {
-    if (settled) {
-      return;
-    }
-    settled = true;
-    clearTimeout(timeoutId);
-    videoLoadInFlight = false;
-    processVideoQueue();
-  };
-  const timeoutId = setTimeout(() => {
-    console.error(`[KVN] video timeout (${VIDEO_LOAD_TIMEOUT_MS}ms sem loadeddata/error) - src=${url}`);
-    video.dispatchEvent(new Event("error"));
-    finish();
-  }, VIDEO_LOAD_TIMEOUT_MS);
-  video.addEventListener("loadeddata", finish, { once: true });
-  video.addEventListener("error", finish, { once: true });
-  video.preload = "auto";
-  video.src = url;
-}
-
-function enqueueVideoLoad(video, url) {
-  videoLoadQueue.push({ video, url });
-  processVideoQueue();
-}
-
 /**
- * <img>/<video> sozinhos não pintam nada nesse webview do UXP mesmo
- * carregando com sucesso (confirmado no painel real: "loadeddata"
- * dispara com videoWidth/videoHeight corretos - o frame É decodificado
- * internamente - mas a tela continua preta). Canvas com fillRect()
- * comprovadamente funciona (a forma de onda de áudio aparece). Por
- * isso o elemento de mídia real fica escondido, só usado como fonte
- * pra desenhar o frame decodificado num canvas via drawImage() - o
- * canvas é o que de fato aparece na tela.
+ * Confirmado no painel real (console do DevTools via UDT "Inspect"):
+ * `ctx.drawImage is not a function` - o contexto 2d do <canvas> nesse
+ * webview do UXP simplesmente não implementa drawImage(). Não era um
+ * problema de decodificação - o vídeo testado decodificou certinho
+ * ("loadeddata" disparou com videoSize=3840x2160 correto) - o erro
+ * acontecia bem depois, na hora de tentar desenhar o frame no canvas.
+ * Por isso a técnica antiga (vídeo/imagem escondidos, frame desenhado
+ * via drawImage() num canvas visível) foi abandonada por completo pra
+ * essas duas mídias: nunca teve como funcionar aqui. A forma de onda de
+ * áudio continua funcionando porque desenha com fillRect()/linhas, que
+ * não depende de drawImage().
+ *
+ * Vídeo: sem alternativa conhecida pra gerar thumbnail real nesse
+ * ambiente (o <video> também não pinta nada sozinho na tela, testado
+ * antes) - cai direto no badge (kind + nome), sem tentar carregar o
+ * arquivo pra isso.
+ *
+ * Imagem: testando uma hipótese ainda não verificada separadamente do
+ * vídeo - exibir a <img> normalmente, sem escondê-la e sem canvas.
+ * Different pipeline de decodificação de <video>, pode se comportar
+ * diferente. Se não pintar na tela também, cai no mesmo badge.
  */
-function drawMediaFrameToCanvas(source, canvas, assetName) {
-  try {
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
-    console.log(`[KVN] frame desenhado no canvas - "${assetName}"`);
-    return true;
-  } catch (error) {
-    console.error(`[KVN] drawImage erro - "${assetName}"`, error);
-    return false;
-  }
-}
-
-/**
- * Esconde um <img>/<video> visualmente sem tirar ele do layout/DOM
- * (nada de display:none) - em alguns engines display:none impede o
- * elemento de sequer carregar/decodificar. position:absolute com
- * 1x1px + opacity:0 tira ele do fluxo normal (o canvas irmão continua
- * ocupando 100% do wrapper) sem arriscar isso.
- */
-function hideMediaSource(el) {
-  el.style.position = "absolute";
-  el.style.width = "1px";
-  el.style.height = "1px";
-  el.style.opacity = "0";
-  el.style.pointerEvents = "none";
-}
-
 function createImageThumb(asset, observer) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "kvn-asset-thumb kvn-asset-thumb-canvas-wrap";
-
-  const canvas = document.createElement("canvas");
-  canvas.className = "kvn-asset-thumb-canvas";
-  canvas.width = 304;
-  canvas.height = 187;
-  wrapper.appendChild(canvas);
-
   const img = document.createElement("img");
+  img.className = "kvn-asset-thumb kvn-asset-thumb-image-el";
   img.alt = asset.name;
-  hideMediaSource(img);
-  wrapper.appendChild(img);
 
   img.addEventListener("load", () => {
     console.log(`[KVN] img carregada - "${asset.name}" natural=${img.naturalWidth}x${img.naturalHeight}`);
-    if (!drawMediaFrameToCanvas(img, canvas, asset.name)) {
-      wrapper.replaceWith(createBadgeThumb(asset));
-    }
   });
   img.addEventListener("error", (event) => {
     console.error(`[KVN] img erro - "${asset.name}" url=${asset.url}`, event);
-    wrapper.replaceWith(createBadgeThumb(asset));
+    img.replaceWith(createBadgeThumb(asset));
   });
-  wrapper.kvnLoad = () => {
+  img.kvnLoad = () => {
     console.log(`[KVN] kvnLoad (img) - "${asset.name}" url=${asset.url}`);
     img.src = asset.url;
   };
-  observer.observe(wrapper);
-  return wrapper;
-}
-
-function createVideoThumb(asset, observer) {
-  const wrapper = document.createElement("div");
-  wrapper.className = "kvn-asset-thumb kvn-asset-thumb-canvas-wrap";
-
-  const canvas = document.createElement("canvas");
-  canvas.className = "kvn-asset-thumb-canvas";
-  canvas.width = 304;
-  canvas.height = 187;
-  wrapper.appendChild(canvas);
-
-  const video = document.createElement("video");
-  video.muted = true;
-  hideMediaSource(video);
-  wrapper.appendChild(video);
-
-  video.addEventListener("loadeddata", () => {
-    console.log(`[KVN] video loadeddata - "${asset.name}" videoSize=${video.videoWidth}x${video.videoHeight}`);
-    if (!drawMediaFrameToCanvas(video, canvas, asset.name)) {
-      wrapper.replaceWith(createBadgeThumb(asset));
-    }
-  });
-  video.addEventListener("error", (event) => {
-    console.error(`[KVN] video erro - "${asset.name}" url=${asset.url}`, event);
-    wrapper.replaceWith(createBadgeThumb(asset));
-  });
-  wrapper.kvnLoad = () => {
-    console.log(`[KVN] kvnLoad (video) - "${asset.name}" url=${asset.url}`);
-    enqueueVideoLoad(video, asset.url);
-  };
-  observer.observe(wrapper);
-  return wrapper;
+  observer.observe(img);
+  return img;
 }
 
 function createAudioThumb(asset, observer) {
@@ -238,12 +122,12 @@ function createThumb(asset, observer) {
   if (asset.kind === "image" && asset.url) {
     return createImageThumb(asset, observer);
   }
-  if (asset.kind === "video" && asset.url) {
-    return createVideoThumb(asset, observer);
-  }
   if (asset.kind === "audio") {
     return createAudioThumb(asset, observer);
   }
+  // "video" cai aqui de propósito - sem drawImage() nesse canvas 2d e
+  // sem <video> pintando sozinho na tela, não tem como gerar thumbnail
+  // real de vídeo nesse ambiente (ver comentário em createImageThumb).
   return createBadgeThumb(asset);
 }
 

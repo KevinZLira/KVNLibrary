@@ -516,20 +516,12 @@ body {
   color: var(--kvn-text-muted);
 }
 
-/* Vídeo/imagem: o <video>/<img> real fica escondido (1x1px, opacity:0 -
-   ver hideMediaSource() em assetGrid.js) e só serve de fonte pra
-   desenhar o frame decodificado num <canvas> via drawImage() - nesse
-   webview do UXP o <video>/<img> não pinta nada sozinho na tela mesmo
-   carregando com sucesso. */
-.kvn-asset-thumb-canvas-wrap {
-  overflow: hidden;
-}
-
-.kvn-asset-thumb-canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-  background: #000000;
+/* Imagem: <img> exibida direto (sem canvas/drawImage - ver comentário
+   em createImageThumb() no assetGrid.js sobre por que a técnica de
+   canvas foi abandonada). object-fit:cover preenche o frame sem
+   distorcer, cortando o excedente. */
+.kvn-asset-thumb-image-el {
+  object-fit: cover;
 }
 
 .kvn-audio-thumb {
