@@ -1,74 +1,80 @@
 /**
- * Identidade visual KVN (a mesma linguagem do site/portfólio KVN, não a
- * do Mister Horse - usado só como referência conceitual de organização/
- * preview/apply, nunca de aparência): fundo quase preto, off-white,
- * verde ácido (#7ff425 - o mesmo valor já extraído do Figma do site em
- * uma versão anterior deste arquivo), linhas finas em vez de blocos
- * cheios, tipografia técnica (mono, maiúsculas, letter-spacing) pra
- * labels de sistema/status, e o mínimo de "ruído" HUD (microtextos,
- * pequenos indicadores) sem sacrificar legibilidade - a função sempre
- * na frente da estética.
+ * Paleta e medidas extraídas DIRETO do CSS real da Mister Horse Premiere
+ * Composer (extensão CEP, client/dist/browser.css) - não são estimativas.
+ * A pedido explícito do usuário: seguir o visual deles à risca por
+ * enquanto (base de trabalho rápida e precisa), com identidade própria
+ * KVN entrando numa passada de adaptação futura - não agora.
  *
- * Medidas de layout (altura de linha/ícone, indentação, gap) NÃO
- * mudaram nessa reescrita - são números testados no painel real em
- * sessões anteriores e não têm relação com identidade visual, só com
- * usabilidade. O que muda aqui é cor, tipografia, formato de borda/
- * botão e nível de "peso visual" (glow pesado -> linha fina).
+ * Valores confirmados por extração de regex no CSS real (nunca por
+ * aparência/estimativa):
+ *   --spectrum-gray-50/-75/-100/-200/-300/-500/-700 (tema darkest)
+ *   --spectrum-blue-400/-500/-600 (botão "emphasized")
+ *   .button{border-radius:4px;height:20px;padding:2px 7px}
+ *   .tree-view-row{min-height:24px} .tree-view-item__icon{24x24}
+ *   .tree-view-row__content{margin-left: depth*20px}
+ *   .grid-view-item__preview{margin:10px 10px 0}
+ *   .grid-view-item__label{height:34px;margin:0 10px}
+ *   --font-size:12px; --font-family:"Adobe Clean",sans-serif
+ *   .search-bar__search-input{padding-left:26px;padding-right:18px}
+ *   border-radius consistente: 3px (inputs), 4px (botões), 5px (cards)
+ *
+ * O Mister Horse não usa um painel responsivo por breakpoints (é um
+ * layout fixo, JS-driven) - por isso um único conjunto de valores fixos
+ * em px, sem clamp()/vw (que quebra custom properties nesse webview do
+ * UXP - ver histórico de bugs abaixo).
  *
  * Bugs deste webview do UXP continuam valendo e as soluções foram
  * mantidas: `aspect-ratio` não dimensiona o elemento (thumbs somem) -
  * o frame 304:187 do card ainda usa padding-top percentual;
- * <video>/<img> não pintam nada sozinhos mesmo carregando com sucesso -
- * o frame decodificado ainda é desenhado num <canvas> via drawImage();
- * <button> nativo recebe estilo do SO que appearance:none não sobrescreve
- * de forma confiável - continuam sendo <div role="button">.
+ * <video>/<img> não pintam nada sozinhos mesmo carregando com sucesso,
+ * e o <canvas> 2d desse webview não implementa drawImage() (confirmado
+ * por log real: "ctx.drawImage is not a function") - por isso vídeo cai
+ * num badge, e imagem usa background-image via CSS num <div> em vez de
+ * <img>/canvas (mesmo pipeline de pintura que já funciona pro ícone de
+ * refresh); <button> nativo recebe estilo do SO que appearance:none não
+ * sobrescreve de forma confiável - continuam sendo <div role="button">.
  */
 
 :root {
-  /* Fundos */
-  --kvn-bg: #0a0a0a;
-  --kvn-bg-header: #0d0d0d;
-  --kvn-bg-surface: #0d0d0d;
-  --kvn-bg-row: #0d0d0d;
-  --kvn-bg-row-hover: #161616;
-  --kvn-bg-row-file: #0d0d0d;
-  --kvn-bg-row-file-hover: #161616;
-  --kvn-bg-row-active: #121710;
-  --kvn-bg-card: #0d0d0d;
-  --kvn-bg-card-inner: #0a0a0a;
-  --kvn-bg-card-hover: #161616;
-  --kvn-bg-card-selected: #121710;
-
-  /* Linhas finas em vez de blocos cheios/glow */
-  --kvn-border: rgba(255, 255, 255, 0.08);
-  --kvn-border-strong: rgba(255, 255, 255, 0.16);
+  /* Fundos (escala de cinza do tema "darkest" do Spectrum) */
+  --kvn-bg: #0e0e0e; /* background-grid-list - área da grade */
+  --kvn-bg-header: #1d1d1d; /* background-panel */
+  --kvn-bg-surface: #1d1d1d; /* background-panel - árvore */
+  --kvn-bg-row: #1d1d1d;
+  --kvn-bg-row-hover: #303030; /* background-panel-selected */
+  --kvn-bg-row-file: #1d1d1d;
+  --kvn-bg-row-file-hover: #303030;
+  --kvn-bg-row-active: #303030;
+  --kvn-bg-card: #1d1d1d; /* background-grid-item */
+  --kvn-bg-card-inner: #0e0e0e;
+  --kvn-bg-card-hover: #303030; /* background-grid-item-hover */
+  --kvn-bg-card-selected: #4b4b4b; /* background-grid-item-selected */
+  --kvn-border: #000000; /* background-separator-dark */
 
   /* Texto */
-  --kvn-text: #ededed;
-  --kvn-text-muted: #7a7a7a;
-  --kvn-text-dim: #4a4a4a;
+  --kvn-text: #d0d0d0; /* text-panel-primary (gray-700) */
+  --kvn-text-muted: #8d8d8d; /* text-panel-secondary (gray-500) */
+  --kvn-text-on-accent: #ffffff;
 
-  /* Verde ácido KVN - único acento de cor do produto */
-  --kvn-accent: #7ff425;
-  --kvn-accent-hover: #97ff5c;
-  --kvn-accent-dim: rgba(127, 244, 37, 0.1);
-  --kvn-accent-text: #0a0a0a;
+  /* Acento (botão "emphasized" - único lugar com cor no Mister Horse) */
+  --kvn-accent: #1379f3; /* spectrum-blue-600 */
+  --kvn-accent-hover: #0367e0; /* spectrum-blue-500 */
+  --kvn-accent-active: #0059c2; /* spectrum-blue-400 */
 
+  --kvn-scrollbar: #4b4b4b;
   --kvn-error: #ff5d5d;
-  --kvn-success: #7ff425;
-  --kvn-info: #7ff425;
+  --kvn-success: #2fce6b;
+  --kvn-info: #1379f3;
 
-  --kvn-font-sans: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
-  --kvn-font-mono: "SF Mono", "JetBrains Mono", "Consolas", monospace;
-
-  /* Medidas fixas (layout - ver nota acima) */
+  /* Medidas fixas (sem breakpoints - o painel real do Mister Horse não
+     é responsivo por steps, é um layout fixo compacto) */
   --kvn-header-h: 38px;
   --kvn-logo-h: 20px;
   --kvn-icon-size: 24px;
 
   --kvn-tree-w: 150px;
   --kvn-row-min-h: 24px;
-  --kvn-row-indent: 20px;
+  --kvn-row-indent: 20px; /* tree-view-row__content: depth * 20px, valor real */
   --kvn-row-icon-w: 24px;
   --kvn-row-icon-h: 24px;
   --kvn-scrollbar-w: 8px;
@@ -76,13 +82,14 @@
   --kvn-card-w: 128px;
   --kvn-card-gap-x: 10px;
   --kvn-card-gap-y: 10px;
-  --kvn-thumb-margin: 10px;
-  --kvn-label-h: 34px;
+  --kvn-thumb-margin: 10px; /* grid-view-item__preview: margin:10px 10px 0 */
+  --kvn-label-h: 34px; /* grid-view-item__label: height:34px */
 
-  --kvn-btn-h: 26px;
-  --kvn-btn-pad-x: 12px;
-  --kvn-btn-radius: 2px;
-  --kvn-btn-font: 11px;
+  --kvn-btn-h: 20px; /* .button: height:20px */
+  --kvn-btn-pad-x: 7px; /* .button: padding:2px 7px */
+  --kvn-btn-radius: 4px; /* .button: border-radius:4px */
+  --kvn-input-radius: 3px; /* radio de input, consistente no CSS real */
+  --kvn-btn-font: 12px;
 }
 
 * {
@@ -95,7 +102,7 @@ body {
   padding: 0;
   background: var(--kvn-bg);
   color: var(--kvn-text);
-  font-family: var(--kvn-font-sans);
+  font-family: "Adobe Clean", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 12px;
 }
 
@@ -138,10 +145,10 @@ body {
   align-items: center;
 }
 
-/* Botão de ícone (refresh): retângulo de linha fina, sem glow/pílula -
-   RefreshIcon.svg foi recolorido pra off-white direto no arquivo (fill
-   fixo, não dá pra sobrescrever cor de SVG usado via background-image
-   com CSS puro nesse contexto).
+/* Botão de ícone (refresh): mesmo tratamento visual de um botão padrão
+   do Mister Horse (fundo neutro, cantos 4px, sem glow/pílula) - só que
+   quadrado, do tamanho de um ícone de árvore (24x24), pra caber o
+   glifo de RefreshIcon.svg centralizado.
    É um <div role="button">, não <button> - <button> nesse webview do
    UXP recebe estilo nativo do SO que nem appearance:none consegue
    sobrescrever de forma confiável (testado: três tentativas de CSS
@@ -154,76 +161,64 @@ body {
   width: var(--kvn-icon-size);
   height: var(--kvn-icon-size);
   margin-right: 10px;
-  background-color: transparent;
+  background-color: var(--kvn-bg-card-inner);
   background-image: url("../../../RefreshIcon.svg");
   background-repeat: no-repeat;
   background-position: center;
-  background-size: 13px 13px;
-  border: 1px solid var(--kvn-border-strong);
+  background-size: 14px 14px;
   border-radius: var(--kvn-btn-radius);
   cursor: pointer;
   line-height: 1;
   user-select: none;
-  transition: border-color 0.12s ease, background-color 0.12s ease;
+  transition: background-color 0.15s ease;
 }
 
 .kvn-icon-button:hover {
-  border-color: var(--kvn-accent);
-  background-color: var(--kvn-accent-dim);
+  background-color: var(--kvn-bg-row-hover);
 }
 
-/* Microtexto de sistema (label técnico, maiúsculo, mono) - reaparece em
-   status/rótulos pequenos pelo painel, no espírito de "LIBRARY //
-   ONLINE" do briefing de identidade, sem virar arte ASCII nem afirmar
-   um estado que o app não rastreia de verdade. */
 .kvn-project-status {
   margin: 0;
   padding: 6px 10px;
-  font-family: var(--kvn-font-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 11px;
   color: var(--kvn-text-muted);
   border-bottom: 1px solid var(--kvn-border);
   flex-shrink: 0;
 }
 
 .kvn-status-bar {
-  padding: 7px 10px;
-  font-family: var(--kvn-font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.03em;
+  padding: 8px 10px;
+  font-size: 11px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--kvn-border);
-  border-left: 2px solid transparent;
 }
 
 .kvn-status-bar.kvn-status-error {
-  border-left-color: var(--kvn-error);
+  background: rgba(255, 93, 93, 0.15);
   color: var(--kvn-error);
 }
 
 .kvn-status-bar.kvn-status-info {
-  border-left-color: var(--kvn-info);
-  color: var(--kvn-text);
+  background: rgba(19, 121, 243, 0.12);
+  color: var(--kvn-info);
 }
 
 .kvn-status-bar.kvn-status-success {
-  border-left-color: var(--kvn-success);
-  color: var(--kvn-text);
+  background: rgba(47, 206, 107, 0.14);
+  color: var(--kvn-success);
 }
 
 .kvn-hidden {
   display: none !important;
 }
 
-/* Busca: input de linha fina, mono maiúsculo - "SEARCH" em vez de um
-   placeholder genérico, no espírito de label técnico da identidade. */
+/* Busca: input padrão do Mister Horse (search-bar__search-input),
+   cantos 3px (raio real de input no CSS deles), fundo neutro. */
 .kvn-search-bar {
   position: relative;
   display: flex;
   align-items: center;
-  padding: 6px 10px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--kvn-border);
   flex-shrink: 0;
 }
@@ -232,20 +227,18 @@ body {
   flex: 1;
   min-width: 0;
   height: 24px;
-  padding: 0 24px 0 8px;
-  background: transparent;
-  border: 1px solid var(--kvn-border-strong);
-  border-radius: var(--kvn-btn-radius);
+  padding: 0 24px 0 10px;
+  background: var(--kvn-bg-card-inner);
+  border: 1px solid var(--kvn-border);
+  border-radius: var(--kvn-input-radius);
   color: var(--kvn-text);
-  font-family: var(--kvn-font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-family: inherit;
+  font-size: 12px;
   outline: none;
 }
 
 .kvn-search-input::placeholder {
-  color: var(--kvn-text-dim);
+  color: var(--kvn-text-muted);
 }
 
 .kvn-search-input:focus {
@@ -263,13 +256,13 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--kvn-text-muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
 }
 
 .kvn-search-clear:hover {
-  color: var(--kvn-accent);
+  color: var(--kvn-text);
 }
 
 .kvn-view {
@@ -288,7 +281,8 @@ body {
 }
 
 /* Biblioteca: árvore fixa na esquerda + grade responsiva na direita,
-   sempre visíveis lado a lado. */
+   sempre visíveis lado a lado - mesma arquitetura split-pane do Mister
+   Horse (.split-pane__tree-pane / .split-pane__grid-pane). */
 .kvn-library-view {
   flex: 1;
   min-height: 0;
@@ -317,7 +311,7 @@ body {
 
 .kvn-library-tree::-webkit-scrollbar-thumb,
 .kvn-library-main::-webkit-scrollbar-thumb {
-  background: var(--kvn-border-strong);
+  background: var(--kvn-scrollbar);
   border-radius: 4px;
 }
 
@@ -328,21 +322,20 @@ body {
   padding: 10px;
 }
 
-/* Linha de pasta: bloco de linha fina (separador 1px, sem glow), com um
-   traço verde de 2px só na borda esquerda quando ativa - "linha fina"
-   em vez de preenchimento cheio. */
+/* Linha de pasta (tree-view-row real: min-height 24px, fundo sólido,
+   indentação de 20px por nível de profundidade - valores literais do
+   Mister Horse, não pílula/glow). */
 .kvn-tree-folder-row {
   display: flex;
   align-items: center;
   gap: 5px;
   min-height: var(--kvn-row-min-h);
-  padding: 0 5px 0 3px;
-  padding-left: calc(3px + var(--kvn-depth, 0) * var(--kvn-row-indent));
+  padding: 0 5px;
+  padding-left: calc(5px + var(--kvn-depth, 0) * var(--kvn-row-indent));
   cursor: pointer;
   background: var(--kvn-bg-row);
   color: var(--kvn-text);
   border-bottom: 1px solid var(--kvn-border);
-  border-left: 2px solid transparent;
 }
 
 .kvn-tree-folder-row:hover {
@@ -351,7 +344,6 @@ body {
 
 .kvn-tree-folder-row.kvn-tree-active {
   background: var(--kvn-bg-row-active);
-  border-left-color: var(--kvn-accent);
 }
 
 .kvn-tree-chevron {
@@ -363,8 +355,10 @@ body {
 }
 
 /* Ícone de pasta desenhado só com CSS (retângulo + aba), sem depender
-   de imagem - evita tanto reusar um asset de marca de outro produto
-   quanto arriscar filter/imagem quebrando nesse webview. */
+   de imagem - o Mister Horse usa um ícone monocromático simples aqui
+   (tree-view-item__icon, 24x24) e não temos o asset real deles pra
+   copiar, então isso evita tanto usar um ícone de marca de outro
+   produto quanto arriscar filter/imagem quebrando nesse webview. */
 .kvn-tree-folder-icon {
   position: relative;
   width: var(--kvn-row-icon-w);
@@ -393,11 +387,6 @@ body {
   height: 3px;
 }
 
-.kvn-tree-folder-row.kvn-tree-active .kvn-tree-folder-icon::before,
-.kvn-tree-folder-row.kvn-tree-active .kvn-tree-folder-icon::after {
-  background: var(--kvn-accent);
-}
-
 .kvn-tree-folder-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -408,7 +397,7 @@ body {
 
 /* Linha de arquivo: mesma altura/fundo da linha de pasta, indentada
    além do prefixo chevron+ícone da pasta pra alinhar visualmente com o
-   texto da pasta. */
+   texto da pasta (10 + 5 + 24 + 5 ~= 44px de prefixo). */
 .kvn-tree-file-row {
   display: flex;
   align-items: center;
@@ -424,7 +413,6 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   border-bottom: 1px solid var(--kvn-border);
-  border-left: 2px solid transparent;
 }
 
 .kvn-tree-file-row:hover {
@@ -433,12 +421,11 @@ body {
 
 .kvn-tree-file-row.kvn-tree-active {
   background: var(--kvn-bg-row-active);
-  border-left-color: var(--kvn-accent);
   color: var(--kvn-accent);
 }
 
 /* Grade: cards fluidos via flex-wrap (CSS grid se mostrou quebrado
-   nesse webview do UXP). */
+   nesse webview do UXP), gap 10px como o Mister Horse. */
 .kvn-assets-grid {
   display: flex;
   flex-wrap: wrap;
@@ -446,10 +433,9 @@ body {
   row-gap: var(--kvn-card-gap-y);
 }
 
-/* Card: linha fina de 1px em vez de bloco só de cor - fica mais
-   "ficha técnica" que "botão colorido". Seleção usa a mesma lógica da
-   árvore (borda esquerda de 2px verde), consistente pelo painel
-   inteiro. */
+/* Card (grid-view-item real): fundo sólido, cantos retos, sem
+   padding próprio - o espaçamento interno vem da margem do thumb
+   (10px 10px 0, igual ao Mister Horse) e do label (0 10px). */
 .kvn-asset-card {
   display: flex;
   flex-direction: column;
@@ -458,8 +444,6 @@ body {
   max-width: 100%;
   box-sizing: border-box;
   background: var(--kvn-bg-card);
-  border: 1px solid var(--kvn-border);
-  border-left: 2px solid transparent;
   border-radius: 0;
   cursor: pointer;
   text-align: left;
@@ -467,17 +451,16 @@ body {
 
 .kvn-asset-card:hover {
   background: var(--kvn-bg-card-hover);
-  border-color: var(--kvn-border-strong);
 }
 
 .kvn-asset-card.kvn-asset-selected {
   background: var(--kvn-bg-card-selected);
-  border-left-color: var(--kvn-accent);
 }
 
 /* Frame com a proporção da "tela" travada em 304:187, via padding-top
    percentual - aspect-ratio não dimensiona o elemento nesse webview do
-   UXP (o thumb sumia por completo). */
+   UXP (o thumb sumia por completo). Margem 10px 10px 0, igual ao
+   grid-view-item__preview real. */
 .kvn-asset-thumb-frame {
   position: relative;
   width: calc(100% - 20px);
@@ -493,15 +476,13 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  border: 1px solid var(--kvn-border);
   border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--kvn-font-mono);
   font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.3px;
   color: var(--kvn-text-muted);
   background: var(--kvn-bg-card-inner);
 }
@@ -516,12 +497,17 @@ body {
   color: var(--kvn-text-muted);
 }
 
-/* Imagem: <img> exibida direto (sem canvas/drawImage - ver comentário
-   em createImageThumb() no assetGrid.js sobre por que a técnica de
-   canvas foi abandonada). object-fit:cover preenche o frame sem
-   distorcer, cortando o excedente. */
-.kvn-asset-thumb-image-el {
-  object-fit: cover;
+/* Imagem: background-image via CSS num <div>, não <img>/<canvas> - o
+   <canvas> 2d desse webview não implementa drawImage() (confirmado por
+   log real: "ctx.drawImage is not a function") e uma <img> comum
+   também não pinta nada sozinha na tela (confirmado com captura de
+   tela do painel real) - a mesma URL como background-image, porém,
+   usa o pipeline de pintura de CSS em vez do de elemento substituído
+   do DOM, igual à técnica já usada no ícone de refresh. */
+.kvn-asset-thumb-image-bg {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .kvn-audio-thumb {
@@ -533,7 +519,6 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  border: 1px solid var(--kvn-border);
   border-radius: 0;
   cursor: pointer;
   overflow: hidden;
@@ -553,10 +538,9 @@ body {
   transform: translateY(-50%);
   width: 18px;
   height: 18px;
-  border: 1px solid var(--kvn-border-strong);
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.55);
-  color: var(--kvn-accent);
+  color: var(--kvn-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -564,14 +548,15 @@ body {
   pointer-events: none;
 }
 
-/* Legenda do card. */
+/* Legenda do card (grid-view-item__label real: height 34px, margin 0
+   10px). */
 .kvn-asset-name {
   height: var(--kvn-label-h);
   margin: 0 10px;
   display: flex;
   align-items: center;
   font-weight: 400;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--kvn-text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -589,9 +574,7 @@ body {
 }
 
 .kvn-selected-asset-name {
-  font-family: var(--kvn-font-mono);
-  font-size: 10px;
-  letter-spacing: 0.02em;
+  font-size: 11px;
   color: var(--kvn-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -607,55 +590,48 @@ body {
   flex: 1;
 }
 
-/* Botão KVN: retângulo de linha fina (não pílula, não glow), texto
-   técnico maiúsculo com letter-spacing - "linhas finas" e "tipografia
-   técnica" da identidade em vez de preenchimento neon pesado. Hover
-   inverte pra preenchimento sólido (dá o mesmo feedback forte de
-   "pronto pra clicar" que o glow dava, só que sem borrão).
+/* Botão real do Mister Horse (.button): cantos 4px, altura 20px,
+   padding 2px 7px - compacto, nada de pílula/glow. O "emphasized"
+   (Selecionar/Trocar Biblioteca, Importar, Inserir) usa o azul
+   spectrum-blue-600, o único acento de cor do produto real.
    É um <div role="button">, não <button> - mesmo motivo do ícone de
    refresh acima. */
 .kvn-primary-button,
 .kvn-secondary-button {
-  background-color: transparent;
-  color: var(--kvn-accent);
-  border: 1px solid var(--kvn-accent);
-  border-radius: var(--kvn-btn-radius);
+  background-color: var(--kvn-accent);
+  color: var(--kvn-text-on-accent);
+  border: none;
   height: var(--kvn-btn-h);
+  border-radius: var(--kvn-btn-radius);
   padding: 0 var(--kvn-btn-pad-x);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--kvn-font-mono);
-  font-weight: 600;
+  font-weight: 400;
   font-size: var(--kvn-btn-font);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   cursor: pointer;
   flex-shrink: 0;
   user-select: none;
   white-space: nowrap;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition: background-color 0.15s ease;
 }
 
 .kvn-primary-button:hover,
 .kvn-secondary-button:hover {
-  background-color: var(--kvn-accent);
-  color: var(--kvn-accent-text);
+  background-color: var(--kvn-accent-hover);
 }
 
 .kvn-primary-button:active,
 .kvn-secondary-button:active {
-  background-color: var(--kvn-accent-hover);
-  border-color: var(--kvn-accent-hover);
+  background-color: var(--kvn-accent-active);
 }
 
 /* Substitui :disabled (pseudo-classe de <button>, não existe em <div>) -
    pointer-events:none bloqueia o clique de verdade, igual a um <button>
    desabilitado de verdade bloquearia. */
 .kvn-primary-button.kvn-btn-disabled {
-  background-color: transparent;
-  border-color: var(--kvn-border-strong);
-  color: var(--kvn-text-dim);
+  background-color: var(--kvn-bg-card-hover);
+  color: var(--kvn-text-muted);
   cursor: not-allowed;
   pointer-events: none;
 }

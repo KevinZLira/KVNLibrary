@@ -39,6 +39,7 @@ async function chooseLibraryFolder() {
   const folder = await libraryLocation.pickLibraryFolder();
   if (folder) {
     cachedLibraryFolder = folder;
+    await categoryManager.ensureDefaultCategories(folder);
     invalidateCache();
   }
   return folder;
