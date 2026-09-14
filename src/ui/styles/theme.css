@@ -217,6 +217,61 @@ body {
   display: none !important;
 }
 
+/* Busca: input de linha fina, mono maiúsculo - "SEARCH" em vez de um
+   placeholder genérico, no espírito de label técnico da identidade. */
+.kvn-search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--kvn-border);
+  flex-shrink: 0;
+}
+
+.kvn-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0 24px 0 8px;
+  background: transparent;
+  border: 1px solid var(--kvn-border-strong);
+  border-radius: var(--kvn-btn-radius);
+  color: var(--kvn-text);
+  font-family: var(--kvn-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  outline: none;
+}
+
+.kvn-search-input::placeholder {
+  color: var(--kvn-text-dim);
+}
+
+.kvn-search-input:focus {
+  border-color: var(--kvn-accent);
+}
+
+.kvn-search-clear {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--kvn-text-muted);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.kvn-search-clear:hover {
+  color: var(--kvn-accent);
+}
+
 .kvn-view {
   flex: 1;
   min-width: 0;

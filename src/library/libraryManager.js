@@ -12,11 +12,13 @@
 const libraryLocation = require("./libraryLocation");
 const categoryManager = require("./categoryManager");
 const assetManager = require("./assetManager");
+const searchIndex = require("./searchIndex");
 const fsUtils = require("../utils/fsUtils");
 
 let cachedLibraryFolder = null;
 let categoriesCache = null;
 const folderContentsCache = new Map();
+let searchIndexCache = null;
 
 /**
  * Retorna a pasta da biblioteca já escolhida em uma sessão anterior, ou
@@ -89,9 +91,37 @@ async function loadFolderContents(folder) {
   return result;
 }
 
+/**
+ * Busca por nome, categoria (pasta imediata) ou tipo em toda a
+ * biblioteca, não só na pasta ativa - varre a árvore inteira uma vez
+ * (buildIndex) e reaproveita o resultado nas buscas seguintes até o
+ * cache ser invalidado (troca de biblioteca ou Refresh), igual ao
+ * cache de categorias/pastas.
+ */
+async function searchAssets(query) {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return [];
+  }
+
+  const categories = await loadCategories();
+  if (!searchIndexCache) {
+    searchIndexCache = await searchIndex.buildIndex(categories);
+  }
+
+  return searchIndexCache.filter((asset) => {
+    return (
+      asset.name.toLowerCase().includes(normalized) ||
+      asset.category.toLowerCase().includes(normalized) ||
+      asset.kind.toLowerCase().includes(normalized)
+    );
+  });
+}
+
 function invalidateCache() {
   categoriesCache = null;
   folderContentsCache.clear();
+  searchIndexCache = null;
 }
 
 module.exports = {
@@ -99,5 +129,6 @@ module.exports = {
   chooseLibraryFolder,
   loadCategories,
   loadFolderContents,
+  searchAssets,
   invalidateCache,
 };

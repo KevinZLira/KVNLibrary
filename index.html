@@ -30,6 +30,29 @@
 
       <div id="status-bar" class="kvn-status-bar kvn-hidden"></div>
 
+      <!-- Busca: nome, categoria (pasta) ou tipo - em toda a biblioteca,
+           não só na pasta ativa na árvore. Só aparece com uma biblioteca
+           escolhida (mesmo kvn-hidden de #library-view). -->
+      <div id="search-bar" class="kvn-search-bar kvn-hidden">
+        <input
+          id="search-input"
+          type="text"
+          class="kvn-search-input"
+          placeholder="SEARCH"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div
+          id="search-clear-button"
+          class="kvn-search-clear kvn-hidden"
+          role="button"
+          tabindex="0"
+          aria-label="Limpar busca"
+        >
+          &times;
+        </div>
+      </div>
+
       <!-- View: nenhuma pasta de biblioteca escolhida ainda -->
       <section id="no-folder-view" class="kvn-view kvn-hidden">
         <div class="kvn-onboarding">

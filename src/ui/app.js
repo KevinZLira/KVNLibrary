@@ -29,6 +29,14 @@ let navigationStack = [];
 let selectedAsset = null;
 let categories = [];
 
+// Consulta atual da busca - string vazia significa "não está buscando",
+// navegação normal pela árvore. Quando preenchida, refreshLibraryView()
+// substitui o conteúdo da pasta ativa pelos resultados da busca (que
+// olham a biblioteca inteira, não só a pasta selecionada na árvore).
+let searchQuery = "";
+let searchDebounceTimer = null;
+const SEARCH_DEBOUNCE_MS = 200;
+
 function cacheElements() {
   elements.title = document.getElementById("plugin-title");
   elements.refreshButton = document.getElementById("refresh-button");
@@ -36,6 +44,9 @@ function cacheElements() {
   elements.statusBar = document.getElementById("status-bar");
   elements.noFolderView = document.getElementById("no-folder-view");
   elements.chooseFolderHeaderButton = document.getElementById("choose-folder-header-button");
+  elements.searchBar = document.getElementById("search-bar");
+  elements.searchInput = document.getElementById("search-input");
+  elements.searchClearButton = document.getElementById("search-clear-button");
   elements.libraryView = document.getElementById("library-view");
   elements.libraryTree = document.getElementById("library-tree");
   elements.assetsGrid = document.getElementById("assets-grid");
@@ -45,15 +56,24 @@ function cacheElements() {
   elements.insertButton = document.getElementById("insert-button");
 }
 
+function clearSearchState() {
+  searchQuery = "";
+  elements.searchInput.value = "";
+  elements.searchClearButton.classList.add("kvn-hidden");
+}
+
 function showNoFolderView() {
   navigationStack = [];
+  clearSearchState();
   elements.noFolderView.classList.remove("kvn-hidden");
+  elements.searchBar.classList.add("kvn-hidden");
   elements.libraryView.classList.add("kvn-hidden");
   elements.actionBar.classList.add("kvn-hidden");
 }
 
 function showLibraryView() {
   elements.noFolderView.classList.add("kvn-hidden");
+  elements.searchBar.classList.remove("kvn-hidden");
   elements.libraryView.classList.remove("kvn-hidden");
 }
 
@@ -112,11 +132,27 @@ async function refreshLibraryView() {
     selectedAssetPath: selectedAsset && selectedAsset.path,
   });
 
-  const activeContents = pathContents[pathContents.length - 1];
-  const activeAssets = activeContents ? activeContents.assets : [];
+  // Com busca ativa, a grade mostra os resultados (biblioteca inteira),
+  // não o conteúdo da pasta ativa na árvore - a árvore continua
+  // renderizada normalmente por baixo, pra não perder o estado de
+  // navegação quando a busca for limpa.
+  let gridAssets;
+  if (searchQuery) {
+    try {
+      gridAssets = await libraryManager.searchAssets(searchQuery);
+    } catch (error) {
+      console.error("[KVN] Erro na busca:", error);
+      showStatus(elements.statusBar, error.message, "error");
+      gridAssets = [];
+    }
+  } else {
+    const activeContents = pathContents[pathContents.length - 1];
+    gridAssets = activeContents ? activeContents.assets : [];
+  }
+
   renderAssets(
     elements.assetsGrid,
-    activeAssets,
+    gridAssets,
     selectedAsset && selectedAsset.path,
     handleSelectAsset,
     handleImportAsset,
@@ -136,6 +172,31 @@ async function refreshLibraryView() {
 function handleSelectFolder(folder, depth) {
   navigationStack = navigationStack.slice(0, depth);
   navigationStack.push(folder);
+  selectedAsset = null;
+  // Clicar numa pasta enquanto busca só faria sentido se a busca também
+  // filtrasse por pasta clicada - mais simples e previsível é a
+  // navegação normal "vencer": volta pra ver o conteúdo da pasta.
+  clearSearchState();
+  elements.actionBar.classList.add("kvn-hidden");
+  refreshLibraryView();
+}
+
+function handleSearchInput(event) {
+  const value = event.target.value;
+  elements.searchClearButton.classList.toggle("kvn-hidden", value.length === 0);
+
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    searchQuery = value.trim();
+    selectedAsset = null;
+    elements.actionBar.classList.add("kvn-hidden");
+    refreshLibraryView();
+  }, SEARCH_DEBOUNCE_MS);
+}
+
+function handleClearSearch() {
+  clearTimeout(searchDebounceTimer);
+  clearSearchState();
   selectedAsset = null;
   elements.actionBar.classList.add("kvn-hidden");
   refreshLibraryView();
@@ -207,6 +268,7 @@ async function handleChooseFolder() {
   await updateChooseFolderButtonLabel();
   navigationStack = [];
   selectedAsset = null;
+  clearSearchState();
   await refreshLibraryView();
   showStatus(elements.statusBar, "Biblioteca atualizada.", "success");
 }
@@ -238,6 +300,8 @@ async function init() {
 
   elements.refreshButton.addEventListener("click", handleRefresh);
   elements.chooseFolderHeaderButton.addEventListener("click", handleChooseFolder);
+  elements.searchInput.addEventListener("input", handleSearchInput);
+  elements.searchClearButton.addEventListener("click", handleClearSearch);
   elements.importButton.addEventListener("click", () => {
     if (selectedAsset) {
       handleImportAsset(selectedAsset);
@@ -251,6 +315,7 @@ async function init() {
   [
     elements.refreshButton,
     elements.chooseFolderHeaderButton,
+    elements.searchClearButton,
     elements.importButton,
     elements.insertButton,
   ].forEach(makeKeyboardActivatable);
