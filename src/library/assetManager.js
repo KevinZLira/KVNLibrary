@@ -40,6 +40,7 @@ function toAsset(entry, categoryLabel) {
     name: entry.name,
     path: entry.nativePath,
     url: entry.url,
+    fileEntry: entry,
     extension,
     kind: getKind(extension),
     category: categoryLabel,

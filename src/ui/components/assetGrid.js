@@ -26,6 +26,7 @@
  */
 
 const waveform = require("./waveform");
+const { storage } = require("uxp");
 
 const LAZY_ROOT_MARGIN = "300px";
 const RENDER_CHUNK_SIZE = 40;
@@ -38,6 +39,32 @@ const KIND_LABEL = {
   preset: "PST",
   file: "FILE",
 };
+
+const IMAGE_MIME_BY_EXTENSION = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".bmp": "image/bmp",
+  ".tif": "image/tiff",
+  ".tiff": "image/tiff",
+};
+
+// object URLs criadas via URL.createObjectURL() pra thumbnail de
+// imagem (ver createImageThumb) ficam vivas até serem revogadas
+// explicitamente - nunca são liberadas sozinhas. Cada renderAssets()
+// descarta os cards da renderização anterior (container.innerHTML),
+// então é o ponto certo pra revogar as URLs criadas por eles também,
+// senão cada troca de pasta vaza memória.
+const activeObjectUrls = new Set();
+
+function revokeActiveObjectUrls() {
+  for (const url of activeObjectUrls) {
+    URL.revokeObjectURL(url);
+  }
+  activeObjectUrls.clear();
+}
 
 function createBadgeThumb(asset) {
   const thumb = document.createElement("div");
@@ -63,44 +90,48 @@ function createBadgeThumb(asset) {
  * antes) - cai direto no badge (kind + nome), sem tentar carregar o
  * arquivo pra isso.
  *
- * Imagem: entry.url é um esquema interno do UXP (formato confirmado no
- * console: "blob:/blob-1/Pasta/arquivo.png", não um blob: padrão da
- * web nem um file://) - o comportamento muda conforme o jeito de usar
- * essa URL: um Image() OFF-DOM (testado antes, background-image no
- * <div>) nunca disparou nem "load" nem "error" - ficou preso pra
- * sempre, sem sinal nenhum. Testando agora uma <img> de verdade, DENTRO
- * do DOM (igual a como Logo.png/RefreshIcon.svg funcionam), com um
- * timeout de 5s pra saber se trava do mesmo jeito ou se dá algum sinal
- * (load ou error) dessa vez.
+ * Imagem: usar entry.url direto como src de <img>/Image() falhou de
+ * duas formas diferentes nos testes reais - um Image() fora do DOM
+ * nunca disparava nem "load" nem "error" (preso pra sempre), e uma
+ * <img> de verdade dentro do DOM disparava "error" (confirmado no
+ * console). entry.url é um esquema interno do UXP (formato real visto
+ * no console: "blob:/blob-1/Pasta/arquivo.png") - não necessariamente
+ * pensado pra ser consumido direto por toda API que aceita uma URL de
+ * imagem, mesmo funcionando bem como src de <video>.
+ *
+ * Por isso agora os BYTES do arquivo são lidos de verdade via
+ * entry.read() (API de leitura de arquivo do UXP, não tem relação com
+ * entry.url) e viram um Blob local, do qual URL.createObjectURL()
+ * gera uma blob: URL padrão da Web - essa sim garantidamente aceita
+ * por <img>, já que não depende de nenhum esquema específico do UXP.
  */
 function createImageThumb(asset, observer) {
   const img = document.createElement("img");
   img.className = "kvn-asset-thumb kvn-asset-thumb-image-el";
   img.alt = asset.name;
 
-  let settled = false;
-  const timeoutId = setTimeout(() => {
-    if (!settled) {
-      console.error(`[KVN] img TIMEOUT (5s sem load/error) - "${asset.name}" url=${asset.url}`);
-    }
-  }, 5000);
-
   img.addEventListener("load", () => {
-    settled = true;
-    clearTimeout(timeoutId);
-    console.log(
-      `[KVN] img carregada - "${asset.name}" natural=${img.naturalWidth}x${img.naturalHeight} complete=${img.complete}`
-    );
+    console.log(`[KVN] img carregada - "${asset.name}" natural=${img.naturalWidth}x${img.naturalHeight}`);
   });
   img.addEventListener("error", (event) => {
-    settled = true;
-    clearTimeout(timeoutId);
-    console.error(`[KVN] img erro - "${asset.name}" url=${asset.url}`, event);
+    console.error(`[KVN] img erro (blob local) - "${asset.name}"`, event);
     img.replaceWith(createBadgeThumb(asset));
   });
-  img.kvnLoad = () => {
-    console.log(`[KVN] kvnLoad (img) - "${asset.name}" url=${asset.url}`);
-    img.src = asset.url;
+
+  img.kvnLoad = async () => {
+    console.log(`[KVN] kvnLoad (img) - "${asset.name}" lendo via entry.read()`);
+    try {
+      const buffer = await asset.fileEntry.read({ format: storage.formats.binary });
+      const mimeType = IMAGE_MIME_BY_EXTENSION[asset.extension] || "application/octet-stream";
+      const blob = new Blob([buffer], { type: mimeType });
+      const objectUrl = URL.createObjectURL(blob);
+      activeObjectUrls.add(objectUrl);
+      console.log(`[KVN] entry.read() ok - "${asset.name}" bytes=${buffer.byteLength} objectUrl=${objectUrl}`);
+      img.src = objectUrl;
+    } catch (error) {
+      console.error(`[KVN] entry.read() erro - "${asset.name}"`, error);
+      img.replaceWith(createBadgeThumb(asset));
+    }
   };
   observer.observe(img);
   return img;
@@ -149,6 +180,7 @@ function createThumb(asset, observer) {
 }
 
 function renderAssets(container, assets, selectedAssetPath, onSelectAsset, onImportAsset, onPreviewAsset) {
+  revokeActiveObjectUrls();
   container.innerHTML = "";
 
   // Identifica essa chamada específica de renderAssets - se uma navegação
